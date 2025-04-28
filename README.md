@@ -9,7 +9,7 @@ A complete system for collecting and visualizing drone sensor data (pitch/yaw/ro
 - Multiple video streaming options
 
 ## 📦 System Architecture
-
+```plaintext
 ESP32 Drone
 ├── HTTP POST Sensor Data (JSON)
 ├── Video Streaming (MJPEG/RTSP)
@@ -24,7 +24,7 @@ Web Client
 ├── Real-time Dashboard
 ├── Sensor Data Visualization
 └── Live Video Feed
-
+```
 
 ## 🛠️ Prerequisites
 
