@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Drone Data Dashboard</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .data-table { border-collapse: collapse; width: 100%; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background-color: #f2f2f2; }
+        tr:nth-child(even) { background-color: #f9f9f9; }
+    </style>
+</head>
+<body>
+    <h1>Drone Telemetry Data</h1>
+    <table class="data-table">
+        <tr>
+            <th>Timestamp</th>
+            <th>Pitch</th>
+            <th>Yaw</th>
+            <th>Roll</th>
+        </tr>
+        {% for entry in data %}
+        <tr>
+            <td>{{ entry.timestamp }}</td>
+            <td>{{ entry.pitch }}</td>
+            <td>{{ entry.yaw }}</td>
+            <td>{{ entry.roll }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+</body>
+</html>
