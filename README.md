@@ -1,4 +1,4 @@
-```markdown
+
 # Drone Telemetry System with Video Streaming
 
 A complete system for collecting and visualizing drone sensor data (pitch/yaw/roll) and video streams, featuring:
@@ -10,7 +10,6 @@ A complete system for collecting and visualizing drone sensor data (pitch/yaw/ro
 
 ## 📦 System Architecture
 
-```plaintext
 ESP32 Drone
 ├── HTTP POST Sensor Data (JSON)
 ├── Video Streaming (MJPEG/RTSP)
@@ -25,7 +24,7 @@ Web Client
 ├── Real-time Dashboard
 ├── Sensor Data Visualization
 └── Live Video Feed
-```
+
 
 ## 🛠️ Prerequisites
 
@@ -165,13 +164,3 @@ def receive_data():
 ## 📄 License
 MIT License - See [LICENSE](LICENSE) for details
 
----
-
-**Note**: For production use, implement:
-- Rate limiting
-- User authentication
-- Video compression (H.264/H.265)
-- Proper error handling in ESP32 code
-```
-
-This README provides comprehensive documentation while maintaining technical clarity. Adjust ports/credentials as needed for your specific implementation.
