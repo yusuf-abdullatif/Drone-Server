@@ -19,11 +19,16 @@ services:
       - POSTGRES_USER=droneuser
       - POSTGRES_PASSWORD=drone_password
       - POSTGRES_DB=dronedb
-      - POSTGRES_HOST_AUTH_METHOD=scram-sha-256  # Add this line
+      - POSTGRES_INITDB_ARGS=--auth-host=scram-sha-256 --auth-local=scram-sha-256
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
       - drone-net
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U droneuser -d dronedb" ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
 
 
 volumes:
