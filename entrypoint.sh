@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# Wait for PostgreSQL using Python (better alternative)
+# Wait for PostgreSQL using DATABASE_URL from environment
 python << END
 import os
 import time
@@ -11,21 +11,15 @@ max_retries = 10
 retry_delay = 2
 
 def wait_for_db():
-    conn = None
     for _ in range(max_retries):
         try:
-            conn = psycopg2.connect(
-                dbname=os.getenv('POSTGRES_DB', 'dronedb'),
-                user=os.getenv('POSTGRES_USER', 'user'),
-                password=os.getenv('POSTGRES_PASSWORD', 'password'),
-                host=os.getenv('POSTGRES_HOST', 'db'),
-                port=os.getenv('POSTGRES_PORT', '5432')
-            )
+            conn = psycopg2.connect(os.environ['DATABASE_URL'])
             conn.close()
             print("Database connection successful!")
             return True
-        except OperationalError:
-            print(f"Database not ready, retrying in {retry_delay} seconds...")
+        except (OperationalError, KeyError) as e:
+            print(f"Database error: {str(e)}")
+            print(f"Retrying in {retry_delay} seconds...")
             time.sleep(retry_delay)
     return False
 
