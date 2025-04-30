@@ -1,14 +1,14 @@
 #!/bin/sh
 
-# Wait for PostgreSQL using DATABASE_URL from environment
+# Wait using both methods for redundancy
 python << END
 import os
 import time
 import psycopg2
 from psycopg2 import OperationalError
 
-max_retries = 10
-retry_delay = 2
+max_retries = 20  # Increased retries
+retry_delay = 3
 
 def wait_for_db():
     for _ in range(max_retries):
@@ -27,10 +27,18 @@ if not wait_for_db():
     exit(1)
 END
 
+# Secondary check using pg_isready
+until pg_isready -h db -U droneuser -d dronedb; do
+  echo "PostgreSQL check via pg_isready..."
+  sleep 2
+done
+
 # Initialize database
-flask db init
+if [ ! -f "/app/migrations/alembic.ini" ]; then
+  flask db init
+fi
+
 flask db migrate
 flask db upgrade
 
-# Start application
 exec gunicorn --bind 0.0.0.0:5000 "app:create_app()"
