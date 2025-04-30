@@ -33,3 +33,23 @@ def receive_data():
     db.session.add(new_data)
     db.session.commit()
     return jsonify({"message": "Data saved!"}), 201
+
+
+# @main_bp.route('/api/video', methods=['POST'])
+# def receive_video():
+#     frame = request.data
+#     return Response(b'--frame\r\n'
+#                    b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n\r\n',
+#                    mimetype='multipart/x-mixed-replace; boundary=frame')
+#
+# @main_bp.route('/video_feed')
+# def video_feed():
+#     return Response(generate_frames(),
+#                    mimetype='multipart/x-mixed-replace; boundary=frame')
+#
+# def generate_frames():
+#     while True:
+#         # For real implementation, use a queue/redis
+#         time.sleep(0.1)  # Simulate 10 FPS
+#         yield (b'--frame\r\n'
+#                b'Content-Type: image/jpeg\r\n\r\n' + b'fake_frame' + b'\r\n')

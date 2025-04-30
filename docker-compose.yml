@@ -1,27 +1,33 @@
 version: '3.8'
+
 services:
   web:
     build: .
     ports:
-      - "5000:5000"
+      - "0.0.0.0:5000:5000"
     environment:
       - FLASK_APP=app:create_app
       - FLASK_ENV=production
-      - POSTGRES_HOST=db
-      - POSTGRES_DB=dronedb
-      - POSTGRES_USER=user
-      - POSTGRES_PASSWORD=password
+      - DATABASE_URL=postgresql://droneuser:drone_password@db/dronedb
     depends_on:
       - db
+    networks:
+      - drone-net
 
   db:
     image: postgres:15
+    environment:
+      - POSTGRES_USER=droneuser
+      - POSTGRES_PASSWORD=drone_password
+      - POSTGRES_DB=dronedb
     volumes:
       - postgres_data:/var/lib/postgresql/data
-    environment:
-      - POSTGRES_USER=user
-      - POSTGRES_PASSWORD=password
-      - POSTGRES_DB=dronedb
+    networks:
+      - drone-net
+
 
 volumes:
   postgres_data:
+
+networks:
+  drone-net:
