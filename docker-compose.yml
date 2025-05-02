@@ -38,4 +38,3 @@ volumes:
 networks:
   drone-net:  # Explicit network declaration
     driver: bridge
-    name: drone-net  # Fixed network name
