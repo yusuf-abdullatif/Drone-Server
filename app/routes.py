@@ -1,19 +1,21 @@
 from flask import Blueprint, request, jsonify, render_template
 from app.models import SensorData
 from app import db
-from datetime import datetime
+
 
 main_bp = Blueprint('main', __name__)
 
-
 @main_bp.route('/')
 def index():
-    # Remove db.app.app_context() and use direct queries
     if not SensorData.query.first():
         mock_data = SensorData(
-            pitch=45.0,
-            yaw=90.0,
-            roll=10.0
+            pitch=0.0, yaw=0.0, roll=0.0,
+            gpsx=0.0, gpsy=0.0, gpsz=0.0,
+            pressure=1013.25, altitude=0.0, temp=25.0,
+            Vx=0.0, Vy=0.0, Vz=0.0,
+            Ax=0.0, Ay=0.0, Az=0.0,
+            Gx=0.0, Gy=0.0, Gz=0.0,
+            last_qr_reading="Scan QR code..."
         )
         db.session.add(mock_data)
         db.session.commit()
@@ -21,35 +23,30 @@ def index():
     data = SensorData.query.order_by(SensorData.timestamp.desc()).all()
     return render_template('index.html', data=data)
 
-
 @main_bp.route('/api/data', methods=['POST'])
 def receive_data():
     data = request.get_json()
     new_data = SensorData(
         pitch=data.get('pitch', 0.0),
         yaw=data.get('yaw', 0.0),
-        roll=data.get('roll', 0.0)
+        roll=data.get('roll', 0.0),
+        gpsx=data.get('gpsx', 0.0),
+        gpsy=data.get('gpsy', 0.0),
+        gpsz=data.get('gpsz', 0.0),
+        pressure=data.get('pressure', 0.0),
+        altitude=data.get('altitude', 0.0),
+        temp=data.get('temp', 0.0),
+        Vx=data.get('Vx', 0.0),
+        Vy=data.get('Vy', 0.0),
+        Vz=data.get('Vz', 0.0),
+        Ax=data.get('Ax', 0.0),
+        Ay=data.get('Ay', 0.0),
+        Az=data.get('Az', 0.0),
+        Gx=data.get('Gx', 0.0),
+        Gy=data.get('Gy', 0.0),
+        Gz=data.get('Gz', 0.0),
+        last_qr_reading=data.get('last_qr_reading', '')
     )
     db.session.add(new_data)
     db.session.commit()
     return jsonify({"message": "Data saved!"}), 201
-
-
-# @main_bp.route('/api/video', methods=['POST'])
-# def receive_video():
-#     frame = request.data
-#     return Response(b'--frame\r\n'
-#                    b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n\r\n',
-#                    mimetype='multipart/x-mixed-replace; boundary=frame')
-#
-# @main_bp.route('/video_feed')
-# def video_feed():
-#     return Response(generate_frames(),
-#                    mimetype='multipart/x-mixed-replace; boundary=frame')
-#
-# def generate_frames():
-#     while True:
-#         # For real implementation, use a queue/redis
-#         time.sleep(0.1)  # Simulate 10 FPS
-#         yield (b'--frame\r\n'
-#                b'Content-Type: image/jpeg\r\n\r\n' + b'fake_frame' + b'\r\n')
