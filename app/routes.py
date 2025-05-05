@@ -50,3 +50,31 @@ def receive_data():
     db.session.add(new_data)
     db.session.commit()
     return jsonify({"message": "Data saved!"}), 201
+
+@main_bp.route('/api/latest')
+def get_latest_data():
+    latest_data = SensorData.query.order_by(SensorData.timestamp.desc()).first()
+    if latest_data:
+        return jsonify({
+            'pitch': latest_data.pitch,
+            'yaw': latest_data.yaw,
+            'roll': latest_data.roll,
+            'gpsx': latest_data.gpsx,
+            'gpsy': latest_data.gpsy,
+            'gpsz': latest_data.gpsz,
+            'pressure': latest_data.pressure,
+            'altitude': latest_data.altitude,
+            'temp': latest_data.temp,
+            'Vx': latest_data.Vx,
+            'Vy': latest_data.Vy,
+            'Vz': latest_data.Vz,
+            'Ax': latest_data.Ax,
+            'Ay': latest_data.Ay,
+            'Az': latest_data.Az,
+            'Gx': latest_data.Gx,
+            'Gy': latest_data.Gy,
+            'Gz': latest_data.Gz,
+            'last_qr_reading': latest_data.last_qr_reading,
+            'timestamp': latest_data.timestamp.isoformat()
+        })
+    return jsonify({"message": "No data available"}), 404
