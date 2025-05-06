@@ -2,8 +2,8 @@ import cv2
 import requests
 import time
 
-SERVER_URL = "http://localhost:5000"
-#SERVER_URL = "http://34.88.248.153:5000"
+#SERVER_URL = "http://localhost:5000"
+SERVER_URL = "http://34.88.248.153:5000"
 
 def send_camera_feed():
     cap = cv2.VideoCapture(0)

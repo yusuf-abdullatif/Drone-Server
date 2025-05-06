@@ -49,8 +49,8 @@ def spam_data(target_url, interval=1):
 if __name__ == "__main__":
     if len(sys.argv) < 2:
         print("Using default localhost:5000")
-        target = "http://localhost:5000" #for local
-        #target = "http://34.88.248.153:5000/"  #for cloud
+        #target = "http://localhost:5000" #for local
+        target = "http://34.88.248.153:5000/"  #for cloud
     else:
         target = sys.argv[1]
 
