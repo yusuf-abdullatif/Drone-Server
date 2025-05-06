@@ -1,9 +1,17 @@
 from flask import Blueprint, request, jsonify, render_template
+from flask_socketio import emit
+from app import db, socketio
 from app.models import SensorData
-from app import db
+import cv2
+import base64
+import threading
+from datetime import datetime
 
 
 main_bp = Blueprint('main', __name__)
+latest_frame = None
+frame_lock = threading.Lock()
+
 
 @main_bp.route('/')
 def index():
@@ -51,30 +59,55 @@ def receive_data():
     db.session.commit()
     return jsonify({"message": "Data saved!"}), 201
 
+
 @main_bp.route('/api/latest')
 def get_latest_data():
-    latest_data = SensorData.query.order_by(SensorData.timestamp.desc()).first()
-    if latest_data:
-        return jsonify({
-            'pitch': latest_data.pitch,
-            'yaw': latest_data.yaw,
-            'roll': latest_data.roll,
-            'gpsx': latest_data.gpsx,
-            'gpsy': latest_data.gpsy,
-            'gpsz': latest_data.gpsz,
-            'pressure': latest_data.pressure,
-            'altitude': latest_data.altitude,
-            'temp': latest_data.temp,
-            'Vx': latest_data.Vx,
-            'Vy': latest_data.Vy,
-            'Vz': latest_data.Vz,
-            'Ax': latest_data.Ax,
-            'Ay': latest_data.Ay,
-            'Az': latest_data.Az,
-            'Gx': latest_data.Gx,
-            'Gy': latest_data.Gy,
-            'Gz': latest_data.Gz,
-            'last_qr_reading': latest_data.last_qr_reading,
-            'timestamp': latest_data.timestamp.isoformat()
-        })
-    return jsonify({"message": "No data available"}), 404
+    latest = SensorData.query.order_by(SensorData.timestamp.desc()).first()
+    if not latest:
+        return jsonify({"message": "No data available"}), 404
+
+    return jsonify({
+        "gpsx": latest.gpsx,
+        "gpsy": latest.gpsy,
+        "gpsz": latest.gpsz,
+        "pressure": latest.pressure,
+        "altitude": latest.altitude,
+        "temp": latest.temp,
+        "Vx": latest.Vx,
+        "Vy": latest.Vy,
+        "Vz": latest.Vz,
+        "Ax": latest.Ax,
+        "Ay": latest.Ay,
+        "Az": latest.Az,
+        "Gx": latest.Gx,
+        "Gy": latest.Gy,
+        "Gz": latest.Gz,
+        "pitch": latest.pitch,
+        "yaw": latest.yaw,
+        "roll": latest.roll,
+        "last_qr_reading": latest.last_qr_reading,
+        "timestamp": latest.timestamp.isoformat()
+    })
+
+@main_bp.route('/api/video', methods=['POST'])
+def receive_video():
+    global latest_frame
+    frame_data = request.data
+    with frame_lock:
+        latest_frame = base64.b64encode(frame_data).decode('utf-8')
+    return jsonify({"message": "Frame received"}), 200
+
+def broadcast_frames():
+    global latest_frame
+    while True:
+        with frame_lock:
+            if latest_frame:
+                socketio.emit('video_frame', {'image': latest_frame})
+        socketio.sleep(0.033)  # ~30 FPS
+
+@socketio.on('connect')
+def handle_connect():
+    if not hasattr(socketio, 'broadcast_thread') or not socketio.broadcast_thread.is_alive():
+        socketio.broadcast_thread = threading.Thread(target=broadcast_frames)
+        socketio.broadcast_thread.daemon = True
+        socketio.broadcast_thread.start()

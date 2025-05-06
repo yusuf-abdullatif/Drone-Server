@@ -1,9 +1,12 @@
 from app import db
 from datetime import datetime
 
+
 class SensorData(db.Model):
+    __tablename__ = 'sensor_data'
+
     id = db.Column(db.Integer, primary_key=True)
-    timestamp = db.Column(db.DateTime, index=True, default=datetime.utcnow)
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
 
     # Existing fields
     pitch = db.Column(db.Float)

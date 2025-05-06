@@ -43,20 +43,29 @@
 </head>
 <body>
     <div class="video-container">
-        Video Feed (Coming Soon)
+        <img id="videoFeed" src="data:image/jpeg;base64,">
     </div>
 
-    <div class="data-grid">
-        <div class="data-item">
-            <span class="data-label">GPS:</span>
-            <span class="data-value" id="gps-data">Loading...</span>
-        </div>
-        <div class="data-item">
-            <span class="data-label">Pressure:</span>
-            <span class="data-value" id="pressure-data">Loading...</span>
-        </div>
-        <div class="data-item">
-            <span class="data-label">Altitude:</span>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.min.js"></script>
+    <script>
+        const socket = io('http://localhost:5000');
+
+        socket.on('video_frame', (data) => {
+            document.getElementById('videoFeed').src = `data:image/jpeg;base64,${data.image}`;
+        });
+    </script>
+
+ <div class="data-grid">
+     <div class="data-item">
+         <span class="data-label">GPS:</span>
+         <span class="data-value" id="gps-data">Loading...</span>
+     </div>
+     <div class="data-item">
+         <span class="data-label">Pressure:</span>
+         <span class="data-value" id="pressure-data">Loading...</span>
+     </div>
+     <div class="data-item">
+         <span class="data-label">Altitude:</span>
             <span class="data-value" id="altitude-data">Loading...</span>
         </div>
         <div class="data-item">
@@ -87,6 +96,9 @@
             <small id="timestamp"></small>
         </div>
     </div>
+    <script>
+    const socket = io(window.location.origin);
+    </script>
     <script>
     function updateDisplay(data) {
         // Update GPS
