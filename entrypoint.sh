@@ -39,6 +39,7 @@ if [ ! -f "/app/migrations/alembic.ini" ]; then
 fi
 
 flask db migrate
+export FLASK_APP=wsgi.py
 flask db upgrade
 
-exec gunicorn --bind 0.0.0.0:5000 "app:create_app()"
+exec gunicorn --worker-class geventwebsocket.gunicorn.workers.GeventWebSocketWorker -w 1 -b 0.0.0.0:5000 wsgi:app

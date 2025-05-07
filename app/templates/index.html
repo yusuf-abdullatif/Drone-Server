@@ -8,8 +8,8 @@
             margin: 20px;
         }
         .video-container {
-            width: 640px;
-            height: 480px;
+            width: 320px;
+            height: 240px;
             margin: 0 auto;
             border: 2px solid #333;
             background: #000;
@@ -43,50 +43,111 @@
 </head>
 <body>
     <div class="video-container">
-        Video Feed (Coming Soon)
+        <img id="videoFeed" src="data:image/jpeg;base64,">
     </div>
 
-    <div class="data-grid">
-        <!-- Latest Data Only -->
-        {% if data %}
-        {% set latest = data[0] %}
-        <div class="data-item">
-            <span class="data-label">GPS:</span>
-            <span class="data-value">{{ "%.4f, %.4f, %.4f"|format(latest.gpsx, latest.gpsy, latest.gpsz) }}</span>
-        </div>
-        <div class="data-item">
-            <span class="data-label">Pressure:</span>
-            <span class="data-value">{{ latest.pressure }} hPa</span>
-        </div>
-        <div class="data-item">
-            <span class="data-label">Altitude:</span>
-            <span class="data-value">{{ latest.altitude }} m</span>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.min.js"></script>
+    <script>
+        const socket = io();
+        //const socket = io('http://localhost:5000');
+        socket.on('video_frame', (data) => {
+            document.getElementById('videoFeed').src = `data:image/jpeg;base64,${data.image}`;
+        });
+    </script>
+
+ <div class="data-grid">
+     <div class="data-item">
+         <span class="data-label">GPS:</span>
+         <span class="data-value" id="gps-data">Loading...</span>
+     </div>
+     <div class="data-item">
+         <span class="data-label">Pressure:</span>
+         <span class="data-value" id="pressure-data">Loading...</span>
+     </div>
+     <div class="data-item">
+         <span class="data-label">Altitude:</span>
+            <span class="data-value" id="altitude-data">Loading...</span>
         </div>
         <div class="data-item">
             <span class="data-label">Temperature:</span>
-            <span class="data-value">{{ latest.temp }} °C</span>
+            <span class="data-value" id="temp-data">Loading...</span>
         </div>
         <div class="data-item">
             <span class="data-label">Velocity:</span>
-            <span class="data-value">{{ "%.2f, %.2f, %.2f"|format(latest.Vx, latest.Vy, latest.Vz) }} m/s</span>
+            <span class="data-value" id="velocity-data">Loading...</span>
         </div>
         <div class="data-item">
             <span class="data-label">Acceleration:</span>
-            <span class="data-value">{{ "%.2f, %.2f, %.2f"|format(latest.Ax, latest.Ay, latest.Az) }} m/s²</span>
+            <span class="data-value" id="accel-data">Loading...</span>
         </div>
         <div class="data-item">
             <span class="data-label">Gyro:</span>
-            <span class="data-value">{{ "%.2f, %.2f, %.2f"|format(latest.Gx, latest.Gy, latest.Gz) }} rad/s</span>
+            <span class="data-value" id="gyro-data">Loading...</span>
         </div>
         <div class="data-item">
             <span class="data-label">Orientation:</span>
-            <span class="data-value">P: {{ latest.pitch|round(2) }}°, Y: {{ latest.yaw|round(2) }}°, R: {{ latest.roll|round(2) }}°</span>
+            <span class="data-value" id="orientation-data">Loading...</span>
         </div>
         <div class="data-item" style="grid-column: 1 / -1;">
             <span class="data-label">Last QR Reading:</span>
-            <span class="data-value">{{ latest.last_qr_reading }}</span>
+            <span class="data-value" id="qr-data">Scan QR code...</span>
         </div>
-        {% endif %}
+        <div class="data-item" style="grid-column: 1 / -1; text-align: center;">
+            <small id="timestamp"></small>
+        </div>
     </div>
+    <script>
+    const socket = io(window.location.origin);
+    </script>
+    <script>
+    function updateDisplay(data) {
+        // Update GPS
+        document.getElementById('gps-data').textContent =
+            `${data.gpsx.toFixed(4)}, ${data.gpsy.toFixed(4)}, ${data.gpsz.toFixed(4)}`;
+
+        // Update Pressure/Altitude/Temp
+        document.getElementById('pressure-data').textContent = `${data.pressure} hPa`;
+        document.getElementById('altitude-data').textContent = `${data.altitude} m`;
+        document.getElementById('temp-data').textContent = `${data.temp} °C`;
+
+        // Update Velocity
+        document.getElementById('velocity-data').textContent =
+            `${data.Vx.toFixed(2)}, ${data.Vy.toFixed(2)}, ${data.Vz.toFixed(2)} m/s`;
+
+        // Update Acceleration
+        document.getElementById('accel-data').textContent =
+            `${data.Ax.toFixed(2)}, ${data.Ay.toFixed(2)}, ${data.Az.toFixed(2)} m/s²`;
+
+        // Update Gyro
+        document.getElementById('gyro-data').textContent =
+            `${data.Gx.toFixed(2)}, ${data.Gy.toFixed(2)}, ${data.Gz.toFixed(2)} rad/s`;
+
+        // Update Orientation
+        document.getElementById('orientation-data').textContent =
+            `P: ${data.pitch.toFixed(2)}°, Y: ${data.yaw.toFixed(2)}°, R: ${data.roll.toFixed(2)}°`;
+
+        // Update QR
+        document.getElementById('qr-data').textContent = data.last_qr_reading;
+
+        // Update Timestamp
+        document.getElementById('timestamp').textContent =
+            `Last update: ${new Date(data.timestamp).toLocaleString()}`;
+    }
+
+    function checkForUpdates() {
+        fetch('/api/latest')
+            .then(response => response.json())
+            .then(data => {
+                if (!data.message) updateDisplay(data);
+            })
+            .catch(error => console.error('Error:', error));
+    }
+
+    // Initial load
+    checkForUpdates();
+    // Update every 500ms
+    setInterval(checkForUpdates, 500);
+    </script>
+
 </body>
 </html>
