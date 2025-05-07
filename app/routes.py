@@ -1,14 +1,22 @@
 from flask import Blueprint, request, jsonify, render_template
 from flask_socketio import emit
-from app import db, socketio
+from app import db, socketio # Assuming 'app' is your Flask app instance and db/socketio are initialized there
 from app.models import SensorData
 import cv2
 import base64
 import threading
 from datetime import datetime
-
+from flask_cors import CORS # Import CORS
 
 main_bp = Blueprint('main', __name__)
+
+# Apply CORS to the blueprint.
+# This will allow requests from any origin to any route in this blueprint.
+# For more specific control, you can apply CORS to individual routes
+# or specify origins, methods, headers etc.
+# e.g., CORS(main_bp, resources={r"/api/": {"origins": ""}})
+CORS(main_bp, resources={r"/api/": {"origins": ""}}) # Enable CORS for all /api/ routes
+
 latest_frame = None
 frame_lock = threading.Lock()
 
@@ -32,6 +40,7 @@ def index():
     return render_template('index.html', data=data)
 
 @main_bp.route('/api/data', methods=['POST'])
+# No specific CORS decorator needed here if applied to blueprint or using the resources config above
 def receive_data():
     data = request.get_json()
     new_data = SensorData(
@@ -61,6 +70,7 @@ def receive_data():
 
 
 @main_bp.route('/api/latest')
+# No specific CORS decorator needed here if applied to blueprint or using the resources config above
 def get_latest_data():
     latest = SensorData.query.order_by(SensorData.timestamp.desc()).first()
     if not latest:
@@ -89,8 +99,22 @@ def get_latest_data():
         "timestamp": latest.timestamp.isoformat()
     })
 
-@main_bp.route('/api/video', methods=['POST'])
+@main_bp.route('/api/video', methods=['POST', 'OPTIONS']) # Add 'OPTIONS'
+# No specific CORS decorator needed here if applied to blueprint or using the resources config above
 def receive_video():
+    # Browsers will first send an OPTIONS request for POST with certain content types
+    # Flask-CORS usually handles this automatically if configured at the app or blueprint level.
+    # If you see issues with preflight, ensure OPTIONS is handled or Flask-CORS is set up correctly.
+    if request.method == 'OPTIONS':
+        # Flask-CORS handles this if set up on the blueprint or app
+        # For manual handling (less common with Flask-CORS):
+        # response = jsonify({"message": "CORS preflight OK"})
+        # response.headers.add('Access-Control-Allow-Origin', '*')
+        # response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+        # response.headers.add('Access-Control-Allow-Methods', 'POST,GET,OPTIONS')
+        # return response, 200
+        pass # Flask-CORS will handle it.
+
     global latest_frame
     frame_data = request.data
     with frame_lock:
