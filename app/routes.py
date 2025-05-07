@@ -10,12 +10,13 @@ from flask_cors import CORS # Import CORS
 
 main_bp = Blueprint('main', __name__)
 
-# Apply CORS to the blueprint.
-# This will allow requests from any origin to any route in this blueprint.
-# For more specific control, you can apply CORS to individual routes
-# or specify origins, methods, headers etc.
-# e.g., CORS(main_bp, resources={r"/api/": {"origins": ""}})
-CORS(main_bp, resources={r"/api/": {"origins": ""}}) # Enable CORS for all /api/ routes
+CORS(main_bp,
+     resources={r"/api/*": { # Apply to all routes starting with /api/
+         "origins": "*", # Allow all origins (you can restrict this to 'http://192.168.137.72' if needed)
+         "methods": ["GET", "POST", "OPTIONS"], # Explicitly allow OPTIONS
+         "allow_headers": ["Content-Type", "Authorization"], # Allow common headers, add others if your client sends them
+         "supports_credentials": True # If you plan to use cookies/auth later
+}})
 
 latest_frame = None
 frame_lock = threading.Lock()
