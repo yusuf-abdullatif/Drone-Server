@@ -1,166 +1,280 @@
+# Drone Telemetry and Video Streaming System
 
-# Drone Telemetry System with Video Streaming
+## Overview
 
-A complete system for collecting and visualizing drone sensor data (pitch/yaw/roll) and video streams, featuring:
-- Python Flask backend with PostgreSQL database
-- Docker containerization
-- ESP32-CAM integration
-- Web dashboard with real-time updates
-- Multiple video streaming options
+This system provides a comprehensive solution for receiving, storing, and visualizing drone telemetry data and video streams in real-time. The backend is built with Python/Flask, using WebSockets for real-time communication and PostgreSQL for data persistence. The system includes:
 
-## 📦 System Architecture
-```plaintext
-ESP32 Drone
-├── HTTP POST Sensor Data (JSON)
-├── Video Streaming (MJPEG/RTSP)
-│
-Azure VM
-├── Flask API (Python)
-│   ├── PostgreSQL Database
-│   ├── Redis (Optional)
-│   └── Nginx Reverse Proxy
-│
-Web Client
-├── Real-time Dashboard
-├── Sensor Data Visualization
-└── Live Video Feed
-```
+- REST API endpoints for telemetry data submission
+- WebSocket-based video streaming
+- Database storage for historical telemetry data
+- Web interface for data visualization
 
-## 🛠️ Prerequisites
+## System Architecture
 
-1. **Hardware**
-   - ESP32-CAM module
-   - FTDI programmer
-   - WiFi network (2.4GHz)
+### Components
 
-2. **Software**
-   - Docker & Docker Compose
-   - Python 3.9+
-   - Arduino IDE (for ESP32)
-   - PostgreSQL client
+1. **Backend Server**: Flask application with Socket.IO for real-time communication
+2. **Database**: PostgreSQL for persistent storage of telemetry data
+3. **Frontend**: Web interface (HTML/JS) for data visualization
+4. **Client Tools**: Python scripts for testing (sensor data simulation and video streaming)
 
-## 🚀 Installation
+### Communication Flow
 
-### Backend Setup
-```bash
-# Clone repository
-git clone https://github.com/yourusername/drone-telemetry-system.git
-cd drone-telemetry-system
+1. **Telemetry Data**:
+   - Drone/client sends POST requests to `/api/data` with JSON payload
+   - Server stores data in PostgreSQL database
+   - Web interface can retrieve latest data via `/api/latest`
 
-# Create environment file
-cp .env.example .env
-# Edit with your credentials
-nano .env
+2. **Video Streaming**:
+   - Drone/client sends video frames to `/api/video` as binary data
+   - Server broadcasts frames to all connected WebSocket clients
+   - Frames are encoded as base64 JPEG images
 
-# Build and start containers
-docker-compose up --build -d
+## Technical Specifications
 
-# Initialize database
-docker-compose exec web flask db init
-docker-compose exec web flask db migrate
-docker-compose exec web flask db upgrade
-```
+### Backend Technologies
 
-### ESP32 Setup
-1. Install required libraries:
-   - ESP32 Board Package
-   - `esp32-camera` & `HTTPClient`
-
-2. Configure `esp32_code.ino`:
-   ```cpp
-   // WiFi Settings
-   const char* ssid = "YOUR_WIFI";
-   const char* password = "WIFI_PASSWORD";
-   
-   // Server Settings
-   const char* serverUrl = "http://your-vm-ip:5000/api/data";
-   const char* videoServerUrl = "http://your-vm-ip:5000/api/video";
-   ```
-
-3. Upload to ESP32-CAM via Arduino IDE
-
-## ⚙️ Configuration
-
-### Environment Variables (`.env`)
-```ini
-POSTGRES_USER=drone_user
-POSTGRES_PASSWORD=secure_password
-POSTGRES_DB=drone_telemetry
-FLASK_SECRET_KEY=your_flask_secret
-```
+- **Python 3.x**
+- **Flask** (Web framework)
+- **Flask-SocketIO** (WebSocket support)
+- **Flask-SQLAlchemy** (ORM)
+- **PostgreSQL** (Database)
+- **OpenCV** (Video processing)
+- **Gunicorn** (WSGI server)
+- **Gevent** (Asynchronous networking)
 
 ### API Endpoints
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/api/data` | POST | Receive sensor data (JSON) |
-| `/api/video` | POST | Receive video frames |
-| `/video_feed` | GET | MJPEG video stream |
-| `/` | GET | Web dashboard |
 
-## 🌐 Web Interface
-Access the dashboard at `http://your-vm-ip:5000`:
-- Real-time sensor data table
-- Live video feed (MJPEG)
-- Auto-refreshing every 2 seconds
+| Endpoint       | Method | Description                          |
+|----------------|--------|--------------------------------------|
+| `/`            | GET    | Web interface                        |
+| `/api/data`    | POST   | Submit telemetry data                |
+| `/api/latest`  | GET    | Retrieve latest telemetry data       |
+| `/api/video`   | POST   | Submit video frame                   |
 
-![Dashboard Preview](https://via.placeholder.com/800x600.png?text=Drone+Dashboard+Preview)
+## Google Cloud Compute Engine Setup
 
-## 📹 Video Streaming Options
+### Prerequisites
 
-### 1. Basic MJPEG
-```html
-<img src="http://your-vm-ip:5000/video_feed" width="640" height="480">
-```
+1. Google Cloud account
+2. Google Cloud SDK installed locally
+3. Docker installed on local machine
+4. Domain name (optional) for production deployment
 
-### 2. RTSP (Recommended)
-```yaml
-# docker-compose.yml
-rtsp_server:
-  image: aler9/rtsp-simple-server
-  ports:
-    - "8554:8554"
-    - "1935:1935"
-```
+### Deployment Steps
 
-ESP32 Code:
-```cpp
-// Use RTSP library instead of HTTP POST
-rtsp.sendFrame(fb->buf, fb->len);
-```
+1. **Create Compute Engine Instance**
+   - Navigate to Google Cloud Console
+   - Create new VM instance with:
+     - Machine type: e2-medium (or higher for production)
+     - Boot disk: Ubuntu 20.04 LTS
+     - Allow HTTP/HTTPS traffic
 
-## 🔒 Security
-1. **HTTPS Setup**
-```bash
-sudo certbot --nginx -d yourdomain.com
-```
+2. **Set Up Firewall Rules**
+   - Allow inbound traffic on ports:
+     - 5000 (Flask application)
+     - 5432 (PostgreSQL - for internal communication only)
 
-2. **API Authentication**
-```python
-# Enable in routes.py
-@auth.login_required
-def receive_data():
-    # ...
-```
-
-## 🐛 Troubleshooting
-
-**Common Issues**:
-1. Database Connection Failures:
+3. **Install Docker on VM**
    ```bash
-   docker-compose exec db psql -U drone_user -d drone_telemetry
+   sudo apt-get update
+   sudo apt-get install docker.io
+   sudo systemctl start docker
+   sudo systemctl enable docker
    ```
 
-2. Missing Camera Frames:
-   ```cpp
-   // Reduce image quality in ESP32 code
-   config.frame_size = FRAMESIZE_QVGA;
-   config.jpeg_quality = 15;
+4. **Install Docker Compose**
+   ```bash
+   sudo curl -L "https://github.com/docker/compose/releases/download/1.29.2/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+   sudo chmod +x /usr/local/bin/docker-compose
    ```
 
-3. High Latency:
-   - Enable hardware acceleration in Nginx
-   - Use RTSP instead of MJPEG
+5. **Clone Repository**
+   ```bash
+   git clone [your-repository-url]
+   cd [repository-directory]
+   ```
 
-## 📄 License
-MIT License - See [LICENSE](LICENSE) for details
+6. **Configure Environment**
+   - Set up environment variables in `.env` file if needed
+   - Ensure `DATABASE_URL` in `docker-compose.yml` matches your configuration
 
+7. **Build and Deploy**
+   ```bash
+   sudo docker-compose build
+   sudo docker-compose up -d
+   ```
+
+8. **Set Up Reverse Proxy (Optional for Production)**
+   - Install Nginx:
+     ```bash
+     sudo apt-get install nginx
+     ```
+   - Configure Nginx as reverse proxy:
+     ```bash
+     sudo nano /etc/nginx/sites-available/yourdomain.com
+     ```
+     Add configuration:
+     ```
+     server {
+         listen 80;
+         server_name yourdomain.com;
+
+         location / {
+             proxy_pass http://localhost:5000;
+             proxy_set_header Host $host;
+             proxy_set_header X-Real-IP $remote_addr;
+             proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+             proxy_set_header X-Forwarded-Proto $scheme;
+         }
+
+         location /socket.io {
+             proxy_pass http://localhost:5000/socket.io;
+             proxy_http_version 1.1;
+             proxy_set_header Upgrade $http_upgrade;
+             proxy_set_header Connection "upgrade";
+             proxy_set_header Host $host;
+         }
+     }
+     ```
+   - Enable the configuration:
+     ```bash
+     sudo ln -s /etc/nginx/sites-available/yourdomain.com /etc/nginx/sites-enabled
+     sudo nginx -t
+     sudo systemctl restart nginx
+     ```
+
+9. **Set Up SSL (Optional)**
+   - Install Certbot:
+     ```bash
+     sudo apt-get install certbot python3-certbot-nginx
+     ```
+   - Obtain SSL certificate:
+     ```bash
+     sudo certbot --nginx -d yourdomain.com
+     ```
+
+## Local Development Setup
+
+### Prerequisites
+
+1. Python 3.8+
+2. PostgreSQL
+3. Docker (optional)
+
+### Installation
+
+1. **Clone Repository**
+   ```bash
+   git clone [your-repository-url]
+   cd [repository-directory]
+   ```
+
+2. **Set Up Virtual Environment**
+   ```bash
+   python -m venv venv
+   source venv/bin/activate  # On Windows: venv\Scripts\activate
+   ```
+
+3. **Install Dependencies**
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+4. **Set Up Database**
+   - Install PostgreSQL
+   - Create database and user:
+     ```sql
+     CREATE DATABASE dronedb;
+     CREATE USER droneuser WITH PASSWORD 'drone_password';
+     GRANT ALL PRIVILEGES ON DATABASE dronedb TO droneuser;
+     ```
+
+5. **Configure Environment Variables**
+   Create `.env` file:
+   ```
+   DATABASE_URL=postgresql://droneuser:drone_password@localhost:5432/dronedb
+   FLASK_APP=wsgi.py
+   FLASK_ENV=development
+   ```
+
+6. **Initialize Database**
+   ```bash
+   flask db init
+   flask db migrate
+   flask db upgrade
+   ```
+
+7. **Run Application**
+   ```bash
+   python wsgi.py
+   ```
+
+## Testing the System
+
+### Using Test Scripts
+
+1. **Sensor Data Simulator**
+   ```bash
+   python sensor_spammer.py [target_url] [interval]
+   ```
+   Example:
+   ```bash
+   python sensor_spammer.py http://localhost:5000 0.5
+   ```
+
+2. **Video Stream Tester**
+   ```bash
+   python video_tester.py
+   ```
+
+### Using Docker
+
+1. **Build and Run**
+   ```bash
+   docker-compose up --build
+   ```
+
+2. **Access Application**
+   - Web interface: `http://localhost:5000`
+   - API endpoints: `http://localhost:5000/api/[endpoint]`
+
+## Configuration Options
+
+### Backend Configuration
+
+- Modify `app/__init__.py` for Flask app configuration
+- Adjust CORS settings in `routes.py` as needed
+- Change database connection parameters in `docker-compose.yml` or `.env`
+
+### Performance Tuning
+
+1. **Video Streaming**
+   - Adjust frame rate in `broadcast_frames()` function
+   - Modify JPEG compression quality in `video_tester.py`
+
+2. **Database**
+   - Configure connection pooling in production
+   - Implement database indexing for frequently queried fields
+
+## Troubleshooting
+
+### Common Issues
+
+1. **Database Connection Problems**
+   - Verify PostgreSQL is running
+   - Check connection string in configuration
+   - Ensure user has proper permissions
+
+2. **Video Streaming Latency**
+   - Reduce frame resolution in `video_tester.py`
+   - Adjust compression quality
+   - Check network bandwidth
+
+3. **WebSocket Connection Issues**
+   - Verify reverse proxy configuration (if using Nginx)
+   - Check CORS settings
+   - Ensure client is using compatible Socket.IO version
+
+
+This README provides comprehensive documentation for setting up and running the drone telemetry and video streaming system. For additional support, please refer to the code comments or open an issue in the repository.
