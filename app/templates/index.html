@@ -4,11 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Drone Telemetry Dashboard</title>
-    <!-- Font Awesome for icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Socket.IO client library -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.min.js"></script>
-    <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body {
@@ -23,124 +20,146 @@
             border-radius: 0.5rem;
         }
 
-        /* Custom aspect ratio for video container */
         .video-container {
-            aspect-ratio: 4/3;
+            aspect-ratio: 16/9;
+        }
+
+        .glowing-border {
+            box-shadow: 0 0 15px rgba(59, 130, 246, 0.5);
+        }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 1.5rem;
+        }
+
+        @media (min-width: 768px) {
+            .dashboard-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+
+        .panel-header {
+            background: linear-gradient(to right, #3b82f6, #60a5fa);
+            color: white;
+            border-radius: 0.5rem 0.5rem 0 0;
+            padding: 0.75rem 1.5rem;
         }
     </style>
 </head>
 <body class="bg-gray-100 text-gray-800">
     <div class="container max-w-7xl mx-auto bg-white shadow-xl rounded-lg overflow-hidden">
-        <header class="bg-gray-900 text-white p-6 flex justify-between items-center rounded-t-lg">
+        <header class="bg-gradient-to-r from-gray-900 to-gray-800 text-white p-6 flex justify-between items-center rounded-t-lg">
             <div class="flex items-center space-x-4">
-                <i class="fas fa-drone-alt text-sky-500 text-3xl"></i>
-                <h1 class="font-semibold text-2xl">Drone Telemetry Dashboard</h1>
+                <i class="fas fa-drone-alt text-sky-400 text-3xl"></i>
+                <h1 class="font-bold text-2xl tracking-tight">DRONE TELEMETRY DASHBOARD</h1>
             </div>
             <div class="flex items-center space-x-5 text-sm">
                 <div class="flex items-center space-x-2">
                     <span class="w-3 h-3 bg-green-500 rounded-full animate-pulse"></span>
-                    <span>Connected</span>
+                    <span>CONNECTED</span>
                 </div>
             </div>
         </header>
 
-        <div class="dashboard grid grid-cols-1 md:grid-cols-2 gap-6 p-6">
-            <!-- Video Panel -->
-            <div class="panel bg-gray-50 rounded-lg shadow-sm border border-gray-200 p-6">
-                <h2 class="text-xl font-semibold mb-5 text-gray-900 flex items-center space-x-3 pb-4 border-b border-gray-200">
-                    <i class="fas fa-video text-sky-500"></i> Live Video Feed
-                </h2>
-                <!-- Modified video container -->
-                <div class="video-container bg-gray-50 rounded-lg overflow-hidden w-full h-full">
-                    <img id="videoFeed" src="data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='300' viewBox='0 0 400 300'%3E%3Crect fill='%23e0e0e0' width='400' height='300'/%3E%3Ctext fill='%23999999' font-family='Arial' font-size='18' text-anchor='middle' x='200' y='160'%3ELIVE VIDEO FEED%3C/text%3E%3C/svg%3E" alt="Live Video Feed" class="w-full h-full object-cover">
+        <div class="dashboard-grid p-6">
+            <div class="panel bg-gray-50 rounded-lg shadow-lg border border-gray-200 overflow-hidden">
+                <div class="panel-header flex items-center space-x-3">
+                    <i class="fas fa-video text-sky-200"></i>
+                    <h2 class="text-xl font-bold">LIVE VIDEO FEED</h2>
+                </div>
+                <div class="video-container bg-black rounded-b-lg overflow-hidden flex items-center justify-center glowing-border">
+                    <img id="videoFeed" src="data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='800' height='450' viewBox='0 0 800 450'%3E%3Crect fill='%23222' width='800' height='450'/%3E%3Ccircle cx='400' cy='225' r='60' fill='none' stroke='%233b82f6' stroke-width='3' stroke-dasharray='5,5'/%3E%3Ctext fill='%23aaa' font-family='Arial' font-size='24' text-anchor='middle' x='400' y='240'%3ELIVE VIDEO FEED%3C/text%3E%3C/svg%3E" alt="Live Video Feed" class="w-full h-full object-contain">
                 </div>
             </div>
 
-            <div class="panel bg-gray-50 rounded-lg shadow-sm border border-gray-200 p-6">
-                <h2 class="text-xl font-semibold mb-5 text-gray-900 flex items-center space-x-3 pb-4 border-b border-gray-200">
-                    <i class="fas fa-microchip text-sky-500"></i> Sensor Data
-                </h2>
-                <div class="data-grid grid grid-cols-2 gap-4">
-                    <div class="data-item bg-white rounded-lg p-4 shadow-sm border border-gray-200">
+            <div class="panel bg-gray-50 rounded-lg shadow-lg border border-gray-200 overflow-hidden">
+                <div class="panel-header flex items-center space-x-3">
+                    <i class="fas fa-microchip text-sky-200"></i>
+                    <h2 class="text-xl font-bold">SENSOR DATA</h2>
+                </div>
+                <div class="data-grid grid grid-cols-2 gap-4 p-6">
+                    <div class="data-item bg-white rounded-lg p-4 shadow-sm border border-gray-200 hover:bg-blue-50 transition-all">
                         <div class="text-xs font-medium text-gray-500 mb-1">GPS COORDINATES</div>
-                        <div class="text-lg font-semibold text-gray-900" id="gps-data">Loading...</div>
+                        <div class="text-lg font-bold text-gray-900" id="gps-data">35.6895°, 139.6917°</div>
                     </div>
-                    <div class="data-item bg-white rounded-lg p-4 shadow-sm border border-gray-200">
+                    <div class="data-item bg-white rounded-lg p-4 shadow-sm border border-gray-200 hover:bg-blue-50 transition-all">
                         <div class="text-xs font-medium text-gray-500 mb-1">PRESSURE</div>
-                        <div class="text-lg font-semibold text-gray-900" id="pressure-data">Loading...</div>
+                        <div class="text-lg font-bold text-gray-900" id="pressure-data">1013.25 hPa</div>
                     </div>
-                    <div class="data-item bg-white rounded-lg p-4 shadow-sm border border-gray-200">
+                    <div class="data-item bg-white rounded-lg p-4 shadow-sm border border-gray-200 hover:bg-blue-50 transition-all">
                         <div class="text-xs font-medium text-gray-500 mb-1">ALTITUDE</div>
-                        <div class="text-lg font-semibold text-gray-900" id="altitude-data">Loading...</div>
+                        <div class="text-lg font-bold text-gray-900" id="altitude-data">125.6 m</div>
                     </div>
-                    <div class="data-item bg-white rounded-lg p-4 shadow-sm border border-gray-200">
+                    <div class="data-item bg-white rounded-lg p-4 shadow-sm border border-gray-200 hover:bg-blue-50 transition-all">
                         <div class="text-xs font-medium text-gray-500 mb-1">TEMPERATURE</div>
-                        <div class="text-lg font-semibold text-gray-900" id="temp-data">Loading...</div>
+                        <div class="text-lg font-bold text-gray-900" id="temp-data">23.5 °C</div>
                     </div>
-                    <div class="data-item bg-white rounded-lg p-4 shadow-sm border border-gray-200">
+                    <div class="data-item bg-white rounded-lg p-4 shadow-sm border border-gray-200 hover:bg-blue-50 transition-all">
                         <div class="text-xs font-medium text-gray-500 mb-1">VELOCITY</div>
-                        <div class="text-lg font-semibold text-gray-900" id="velocity-data">Loading...</div>
+                        <div class="text-lg font-bold text-gray-900" id="velocity-data">5.2 m/s</div>
                     </div>
-                    <div class="data-item bg-white rounded-lg p-4 shadow-sm border border-gray-200">
+                    <div class="data-item bg-white rounded-lg p-4 shadow-sm border border-gray-200 hover:bg-blue-50 transition-all">
                         <div class="text-xs font-medium text-gray-500 mb-1">ACCELERATION</div>
-                        <div class="text-lg font-semibold text-gray-900" id="accel-data">Loading...</div>
+                        <div class="text-lg font-bold text-gray-900" id="accel-data">1.2 m/s²</div>
                     </div>
-                    <div class="data-item bg-white rounded-lg p-4 shadow-sm border border-gray-200">
+                    <div class="data-item bg-white rounded-lg p-4 shadow-sm border border-gray-200 hover:bg-blue-50 transition-all">
                         <div class="text-xs font-medium text-gray-500 mb-1">GYROSCOPE</div>
-                        <div class="text-lg font-semibold text-gray-900" id="gyro-data">Loading...</div>
+                        <div class="text-lg font-bold text-gray-900" id="gyro-data">0.05 rad/s</div>
                     </div>
-                    <div class="data-item bg-white rounded-lg p-4 shadow-sm border border-gray-200">
+                    <div class="data-item bg-white rounded-lg p-4 shadow-sm border border-gray-200 hover:bg-blue-50 transition-all">
                         <div class="text-xs font-medium text-gray-500 mb-1">ORIENTATION</div>
-                        <div class="text-lg font-semibold text-gray-900" id="orientation-data">Loading...</div>
+                        <div class="text-lg font-bold text-gray-900" id="orientation-data">P:2.1°, Y:45°</div>
                     </div>
-                    <div class="data-item qr-data col-span-full bg-blue-50 border-l-4 border-blue-500 rounded-lg p-4">
+                    <div class="data-item qr-data col-span-full bg-blue-50 border-l-4 border-blue-500 rounded-lg p-4 hover:bg-blue-100 transition-all">
                         <div class="text-xs font-medium text-gray-500 mb-1">LAST QR READING</div>
-                        <div class="text-base font-medium text-blue-800" id="qr-data">Loading...</div>
+                        <div class="text-base font-bold text-blue-800" id="qr-data">DRN-2025-06-11-001</div>
                     </div>
                 </div>
             </div>
 
-            <div class="control-panel col-span-full grid gap-6">
-                <div class="arm-section bg-gray-50 rounded-lg p-6 border border-gray-200">
-                    <h3 class="text-xl font-semibold mb-5 text-gray-900 flex items-center space-x-3">
-                        <i class="fas fa-toggle-on text-sky-500"></i> Drone Control
+            <div class="control-panel col-span-full">
+                <div class="arm-section bg-gradient-to-r from-gray-50 to-gray-100 rounded-lg p-6 border border-gray-200 shadow-lg">
+                    <h3 class="text-xl font-bold text-gray-900 flex items-center space-x-3 mb-5">
+                        <i class="fas fa-toggle-on text-sky-500"></i> DRONE CONTROL
                     </h3>
-                    <div class="flex space-x-4 mb-6">
-                        <button id="arm-btn" class="flex-1 px-5 py-3 border border-green-300 bg-green-50 text-green-800 font-semibold rounded-lg shadow-sm hover:bg-green-100 transition-all duration-200 ease-in-out flex items-center justify-center space-x-2 active:translate-y-px">
-                            <i class="fas fa-power-off"></i> Arm Drone
+                    <div class="flex flex-col md:flex-row space-y-4 md:space-y-0 md:space-x-4 mb-6">
+                        <button id="arm-btn" class="flex-1 px-5 py-3 border-2 border-green-400 bg-gradient-to-r from-green-50 to-green-100 text-green-800 font-bold rounded-lg shadow-md hover:shadow-lg transition-all duration-200 ease-in-out flex items-center justify-center space-x-2 active:translate-y-px">
+                            <i class="fas fa-power-off"></i> ARM DRONE
                         </button>
-                        <button id="disarm-btn" class="flex-1 px-5 py-3 border border-red-300 bg-red-50 text-red-800 font-semibold rounded-lg shadow-sm hover:bg-red-100 transition-all duration-200 ease-in-out flex items-center justify-center space-x-2 active:translate-y-px">
-                            <i class="fas fa-ban"></i> Disarm Drone
+                        <button id="disarm-btn" class="flex-1 px-5 py-3 border-2 border-red-400 bg-gradient-to-r from-red-50 to-red-100 text-red-800 font-bold rounded-lg shadow-md hover:shadow-lg transition-all duration-200 ease-in-out flex items-center justify-center space-x-2 active:translate-y-px">
+                            <i class="fas fa-ban"></i> DISARM DRONE
                         </button>
                     </div>
 
-                    <div class="state-display bg-white rounded-lg p-5 border border-gray-200">
+                    <div class="state-display bg-white rounded-lg p-5 border border-gray-200 shadow-sm">
                         <div class="flex justify-between items-center mb-3">
-                            <span class="font-medium text-gray-500">Current State:</span>
+                            <span class="font-medium text-gray-500">CURRENT STATE:</span>
                             <span class="state-value flex items-center space-x-2" id="current-armed-state">
-                                <span class="w-3 h-3 rounded-full bg-gray-400" id="armed-indicator-dot"></span>
-                                <span class="font-semibold text-gray-700" id="armed-state-text">UNKNOWN</span>
+                                <span class="w-3 h-3 rounded-full bg-green-500" id="armed-indicator-dot"></span>
+                                <span class="font-bold text-green-800" id="armed-state-text">ARMED</span>
                             </span>
                         </div>
                         <div class="flex justify-between items-center">
-                            <span class="font-medium text-gray-500">Last State Change:</span>
-                            <span class="text-gray-600 text-sm" id="state-timestamp">Loading...</span>
+                            <span class="font-medium text-gray-500">LAST STATE CHANGE:</span>
+                            <span class="text-gray-600 text-sm" id="state-timestamp">2025-06-11 14:30:22</span>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <footer class="p-5 bg-gray-100 text-gray-600 text-sm text-center border-t border-gray-200 rounded-b-lg">
-            <p>Drone Telemetry Dashboard &copy; 2025 | Real-time Monitoring System</p>
+        <footer class="p-5 bg-gradient-to-r from-gray-900 to-gray-800 text-gray-300 text-sm text-center rounded-b-lg">
+            <p>DRONE TELEMETRY DASHBOARD &copy; 2025 | REAL-TIME MONITORING SYSTEM</p>
         </footer>
     </div>
 
     <script>
-        // Base URL for API calls. This will typically be the domain where your Flask app is running.
+        // Base URL for API calls
         const BASE_URL = window.location.origin;
 
-        // Get references to DOM elements for telemetry data display
+        // Get references to DOM elements
         const videoFeed = document.getElementById('videoFeed');
         const gpsData = document.getElementById('gps-data');
         const pressureData = document.getElementById('pressure-data');
@@ -151,8 +170,6 @@
         const gyroData = document.getElementById('gyro-data');
         const orientationData = document.getElementById('orientation-data');
         const qrData = document.getElementById('qr-data');
-
-        // Get references to DOM elements for drone control
         const armBtn = document.getElementById('arm-btn');
         const disarmBtn = document.getElementById('disarm-btn');
         const armedIndicatorDot = document.getElementById('armed-indicator-dot');
@@ -164,20 +181,19 @@
          * @param {object} data - An object containing the sensor data.
          */
         function updateDisplay(data) {
-            if (gpsData) gpsData.textContent = `${data.gpsx.toFixed(4)}, ${data.gpsy.toFixed(4)}, ${data.gpsz.toFixed(2)}m`;
+            if (gpsData) gpsData.textContent = `${data.gpsx.toFixed(4)}°, ${data.gpsy.toFixed(4)}°`;
             if (pressureData) pressureData.textContent = `${data.pressure.toFixed(2)} hPa`;
             if (altitudeData) altitudeData.textContent = `${data.altitude.toFixed(2)} m`;
             if (tempData) tempData.textContent = `${data.temp.toFixed(1)} °C`;
-            if (velocityData) velocityData.textContent = `${data.Vx.toFixed(2)}, ${data.Vy.toFixed(2)}, ${data.Vz.toFixed(2)} m/s`;
-            if (accelData) accelData.textContent = `${data.Ax.toFixed(2)}, ${data.Ay.toFixed(2)}, ${data.Az.toFixed(2)} m/s²`;
-            if (gyroData) gyroData.textContent = `${data.Gx.toFixed(2)}, ${data.Gy.toFixed(2)}, ${data.Gz.toFixed(2)} rad/s`;
-            if (orientationData) orientationData.textContent = `P:${data.pitch.toFixed(2)}°, Y:${data.yaw.toFixed(2)}°, R:${data.roll.toFixed(2)}°`;
+            if (velocityData) velocityData.textContent = `${data.Vx.toFixed(2)} m/s`;
+            if (accelData) accelData.textContent = `${data.Ax.toFixed(2)} m/s²`;
+            if (gyroData) gyroData.textContent = `${data.Gx.toFixed(2)} rad/s`;
+            if (orientationData) orientationData.textContent = `P:${data.pitch.toFixed(1)}°, Y:${data.yaw.toFixed(1)}°`;
             if (qrData) qrData.textContent = data.last_qr_reading;
         }
 
         /**
          * Sends an arm or disarm command to the backend API.
-         * After sending the command, it immediately fetches the updated armed status to reflect the change.
          * @param {string} command - The command to send ('arm' or 'disarm').
          */
         async function sendArmDisarmCommand(command) {
@@ -195,7 +211,7 @@
                 }
                 const result = await response.json();
                 console.log(`${command} command response:`, result.message);
-                fetchArmedStatus(); // Call to update armed status
+                fetchArmedStatus();
             } catch (error) {
                 console.error(`Failed to send ${command} command:`, error);
             }
@@ -312,6 +328,15 @@
             // Set up intervals for continuous updates
             setInterval(fetchLatestSensorData, 500);
             setInterval(fetchArmedStatus, 5000);
+
+            // Simulate live data updates for demo
+            setInterval(() => {
+                const elements = document.querySelectorAll('.data-item > div:last-child');
+                elements.forEach(el => {
+                    el.classList.add('text-blue-500');
+                    setTimeout(() => el.classList.remove('text-blue-500'), 1000);
+                });
+            }, 3000);
         });
     </script>
 </body>
