@@ -5,7 +5,7 @@ import sys
 from datetime import datetime
 
 
-def generate_random_data():
+def generate_random_sensor_data():
     return {
         "pitch": random.uniform(0, 360),
         "yaw": random.uniform(0, 360),
@@ -24,7 +24,12 @@ def generate_random_data():
         "Az": random.uniform(-20, 20),
         "Gx": random.uniform(-3.14, 3.14),
         "Gy": random.uniform(-3.14, 3.14),
-        "Gz": random.uniform(-3.14, 3.14),
+        "Gz": random.uniform(-3.14, 3.14)
+    }
+
+
+def generate_qr_data():
+    return {
         "last_qr_reading": f"QR_{datetime.now().strftime('%H%M%S%f')}"
     }
 
@@ -32,25 +37,33 @@ def generate_random_data():
 def spam_data(target_url, interval=1):
     while True:
         try:
-            data = generate_random_data()
-            response = requests.post(
+            # Send sensor data
+            sensor_data = generate_random_sensor_data()
+            sensor_response = requests.post(
                 f"{target_url}/api/data",
-                json=data,
+                json=sensor_data,
                 timeout=2
             )
-            print(
-                f"[{datetime.now().isoformat()}] Sent data - Status: {response.status_code}, Response: {response.text}")
+            print(f"Sensor: {sensor_response.status_code}, {sensor_response.text}")
+
+            # Send QR data
+            qr_data = generate_qr_data()
+            qr_response = requests.post(
+                f"{target_url}/api/qrdata",
+                json=qr_data,
+                timeout=2
+            )
+            print(f"QR: {qr_response.status_code}, {qr_response.text}")
+
         except Exception as e:
             print(f"Error: {str(e)}")
-
         time.sleep(interval)
-
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
         print("Using default localhost:5000")
-        #target = "http://localhost:5000" #for local
-        target = "http://34.88.197.179:5000/"  #for cloud
+        target = "http://localhost:5000" #for local
+        #target = "http://34.88.197.179:5000/"  #for cloud
     else:
         target = sys.argv[1]
 

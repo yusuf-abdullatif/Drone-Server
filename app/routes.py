@@ -70,6 +70,18 @@ def receive_data():
     return jsonify({"message": "Data saved!"}), 201
 
 
+@main_bp.route('/api/qrdata', methods=['POST'])
+def receive_qr_data():
+    data = request.get_json()
+    latest = SensorData.query.order_by(SensorData.timestamp.desc()).first()
+
+    if latest:
+        latest.last_qr_reading = data.get('last_qr_reading', '')
+        db.session.commit()
+        return jsonify({"message": "QR Data updated!"}), 200
+    else:
+        return jsonify({"error": "No data to update"}), 404
+
 @main_bp.route('/api/latest')
 # No specific CORS decorator needed here if applied to blueprint or using the resources config above
 def get_latest_data():
