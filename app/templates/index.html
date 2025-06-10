@@ -11,19 +11,21 @@
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        /* Custom styles for fine-tuning beyond Tailwind or for specific elements */
         body {
-            font-family: 'Inter', sans-serif; /* Using Inter font as per guidelines */
-            background: #f5f7fa; /* Light background for the overall page */
-            color: #333; /* Default text color */
+            font-family: 'Inter', sans-serif;
+            background: #f5f7fa;
+            color: #333;
             line-height: 1.6;
             padding: 20px;
         }
 
-        /* Basic styling for rounded corners on all elements, handled by Tailwind classes where possible */
-        /* If specific elements need a default rounded corner not covered by utility classes, apply here */
         .container, .panel, .video-container, .data-item, .arm-section, .state-display, .fetch-section, .state-output, .arm-btn, .fetch-btn {
-            border-radius: 0.5rem; /* Equivalent to Tailwind's rounded-lg */
+            border-radius: 0.5rem;
+        }
+
+        /* Custom aspect ratio for video container */
+        .video-container {
+            aspect-ratio: 16/9;
         }
     </style>
 </head>
@@ -43,12 +45,14 @@
         </header>
 
         <div class="dashboard grid grid-cols-1 md:grid-cols-2 gap-6 p-6">
+            <!-- Video Panel -->
             <div class="panel bg-gray-50 rounded-lg shadow-sm border border-gray-200 p-6">
                 <h2 class="text-xl font-semibold mb-5 text-gray-900 flex items-center space-x-3 pb-4 border-b border-gray-200">
                     <i class="fas fa-video text-sky-500"></i> Live Video Feed
                 </h2>
-                <div class="video-container h-72 bg-gray-50 rounded-lg overflow-hidden flex items-center justify-center">
-                    <img id="videoFeed" src="data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='300' viewBox='0 0 400 300'%3E%3Crect fill='%23e0e0e0' width='400' height='300'/%3E%3Ctext fill='%23999999' font-family='Arial' font-size='18' text-anchor='middle' x='200' y='160'%3ELIVE VIDEO FEED%3C/text%3E%3C/svg%3E" alt="Live Video Feed" class="max-w-full max-h-full object-contain">
+                <!-- Modified video container -->
+                <div class="video-container bg-gray-50 rounded-lg overflow-hidden w-full h-full">
+                    <img id="videoFeed" src="data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='300' viewBox='0 0 400 300'%3E%3Crect fill='%23e0e0e0' width='400' height='300'/%3E%3Ctext fill='%23999999' font-family='Arial' font-size='18' text-anchor='middle' x='200' y='160'%3ELIVE VIDEO FEED%3C/text%3E%3C/svg%3E" alt="Live Video Feed" class="w-full h-full object-cover">
                 </div>
             </div>
 
@@ -124,7 +128,6 @@
                         </div>
                     </div>
                 </div>
-                <!-- The fetch-section is explicitly removed by the user in this version -->
             </div>
         </div>
 
@@ -155,17 +158,12 @@
         const armedIndicatorDot = document.getElementById('armed-indicator-dot');
         const armedStateText = document.getElementById('armed-state-text');
         const stateTimestamp = document.getElementById('state-timestamp');
-        // fetchBtn and stateOutput are intentionally omitted or set to null as their corresponding HTML is removed.
-        const fetchBtn = null; // Explicitly set to null if element is removed
-        const stateOutput = null; // Explicitly set to null if element is removed
 
         /**
          * Updates the display elements with the latest sensor telemetry data.
          * @param {object} data - An object containing the sensor data.
          */
         function updateDisplay(data) {
-            // All these elements are part of the 'Sensor Data' panel which is NOT removed.
-            // Check if element exists before updating to prevent errors if you decide to remove more in the future.
             if (gpsData) gpsData.textContent = `${data.gpsx.toFixed(4)}, ${data.gpsy.toFixed(4)}, ${data.gpsz.toFixed(2)}m`;
             if (pressureData) pressureData.textContent = `${data.pressure.toFixed(2)} hPa`;
             if (altitudeData) altitudeData.textContent = `${data.altitude.toFixed(2)} m`;
@@ -200,14 +198,11 @@
                 fetchArmedStatus(); // Call to update armed status
             } catch (error) {
                 console.error(`Failed to send ${command} command:`, error);
-                // stateOutput will be null here, so no error will occur if removed
             }
         }
 
         /**
          * Fetches the current armed status from the backend API and updates the UI display.
-         * This includes updating the armed indicator, text, timestamp.
-         * Note: stateOutput related updates are skipped as its element is removed.
          */
         async function fetchArmedStatus() {
             try {
@@ -220,7 +215,6 @@
                 const isArmed = data.armed;
                 const timestamp = data.timestamp ? new Date(data.timestamp).toLocaleString() : 'N/A';
 
-                // Update visual indicator (dot and text) only if elements exist
                 if (armedIndicatorDot && armedStateText) {
                     if (isArmed) {
                         armedIndicatorDot.classList.remove('bg-gray-400', 'bg-red-500');
@@ -237,7 +231,6 @@
                     }
                 }
 
-                // Update button states only if elements exist
                 if (armBtn && disarmBtn) {
                     armBtn.disabled = isArmed;
                     disarmBtn.disabled = !isArmed;
@@ -250,17 +243,12 @@
                     }
                 }
 
-                // Update timestamp only if element exists
                 if (stateTimestamp) {
                     stateTimestamp.textContent = timestamp;
                 }
 
-                // stateOutput is null, so this will be skipped, preventing error
-                // if (stateOutput) { stateOutput.textContent = JSON.stringify(data, null, 4); }
-
             } catch (error) {
                 console.error("Failed to fetch armed status:", error);
-                // Set indicators to error state if elements exist
                 if (armedIndicatorDot && armedStateText) {
                     armedIndicatorDot.classList.remove('bg-green-500', 'bg-red-500');
                     armedIndicatorDot.classList.add('bg-gray-400');
@@ -271,10 +259,6 @@
                 if (stateTimestamp) {
                     stateTimestamp.textContent = 'Error fetching state';
                 }
-                // stateOutput is null, so this will be skipped, preventing error
-                // if (stateOutput) { stateOutput.textContent = `Error fetching armed status: ${error.message}`; }
-
-                // Keep buttons enabled or disabled based on last known state, or default to enabled if unknown
                 if (armBtn) armBtn.disabled = false;
                 if (disarmBtn) disarmBtn.disabled = false;
                 if (armBtn) armBtn.classList.remove('opacity-50', 'cursor-not-allowed');
@@ -283,12 +267,8 @@
         }
 
         // Event Listeners for control buttons
-        // Add listeners only if the buttons exist
         if (armBtn) armBtn.addEventListener('click', () => sendArmDisarmCommand('arm'));
         if (disarmBtn) disarmBtn.addEventListener('click', () => sendArmDisarmCommand('disarm'));
-        // fetchBtn is null, so this will be skipped, preventing error
-        // if (fetchBtn) fetchBtn.addEventListener('click', fetchArmedStatus);
-
 
         // Socket.IO connection for video feed and telemetry data.
         const socket = io(BASE_URL);
@@ -300,7 +280,7 @@
             }
         });
 
-        // Listen for telemetry data updates (Ensure your backend emits 'telemetry_data' for this to work)
+        // Listen for telemetry data updates
         socket.on('telemetry_data', (data) => {
             if (data) {
                 updateDisplay(data);
@@ -315,7 +295,7 @@
                 const response = await fetch(`${BASE_URL}/api/latest`);
                 const data = await response.json();
                 if (!data.message) {
-                    updateDisplay(data); // Update sensor data display
+                    updateDisplay(data);
                 } else {
                     console.warn("No sensor data available from API:", data.message);
                 }
@@ -326,12 +306,12 @@
 
         // Initialize dashboard:
         document.addEventListener('DOMContentLoaded', () => {
-            fetchLatestSensorData(); // Initial fetch of sensor data
-            fetchArmedStatus(); // Initial fetch of armed status
+            fetchLatestSensorData();
+            fetchArmedStatus();
 
             // Set up intervals for continuous updates
-            setInterval(fetchLatestSensorData, 500); // Update sensor data every 500ms
-            setInterval(fetchArmedStatus, 5000); // Update armed status every 5 seconds
+            setInterval(fetchLatestSensorData, 500);
+            setInterval(fetchArmedStatus, 5000);
         });
     </script>
 </body>
