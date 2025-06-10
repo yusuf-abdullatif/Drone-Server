@@ -1,153 +1,338 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Sensor Dashboard</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Drone Telemetry Dashboard</title>
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Socket.IO client library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.min.js"></script>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
     <style>
+        /* Custom styles for fine-tuning beyond Tailwind or for specific elements */
         body {
-            font-family: Arial, sans-serif;
-            margin: 20px;
+            font-family: 'Inter', sans-serif; /* Using Inter font as per guidelines */
+            background: #f5f7fa; /* Light background for the overall page */
+            color: #333; /* Default text color */
+            line-height: 1.6;
+            padding: 20px;
         }
-        .video-container {
-            width: 320px;
-            height: 240px;
-            margin: 0 auto;
-            border: 2px solid #333;
-            background: #000;
-            color: white;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        .data-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 10px;
-            margin-top: 20px;
-            max-width: 800px;
-            margin-left: auto;
-            margin-right: auto;
-        }
-        .data-item {
-            padding: 10px;
-            background: #f5f5f5;
-            border-radius: 5px;
-        }
-        .data-label {
-            font-weight: bold;
-            color: #333;
-        }
-        .data-value {
-            color: #666;
+
+        /* Basic styling for rounded corners on all elements, handled by Tailwind classes where possible */
+        /* If specific elements need a default rounded corner not covered by utility classes, apply here */
+        .container, .panel, .video-container, .data-item, .arm-section, .state-display, .fetch-section, .state-output, .arm-btn, .fetch-btn {
+            border-radius: 0.5rem; /* Equivalent to Tailwind's rounded-lg */
         }
     </style>
 </head>
-<body>
-    <div class="video-container">
-        <img id="videoFeed" src="data:image/jpeg;base64,">
+<body class="bg-gray-100 text-gray-800">
+    <div class="container max-w-7xl mx-auto bg-white shadow-xl rounded-lg overflow-hidden">
+        <header class="bg-gray-900 text-white p-6 flex justify-between items-center rounded-t-lg">
+            <div class="flex items-center space-x-4">
+                <i class="fas fa-drone-alt text-sky-500 text-3xl"></i>
+                <h1 class="font-semibold text-2xl">Drone Telemetry Dashboard</h1>
+            </div>
+            <div class="flex items-center space-x-5 text-sm">
+                <div class="flex items-center space-x-2">
+                    <span class="w-3 h-3 bg-green-500 rounded-full animate-pulse"></span>
+                    <span>Connected</span>
+                </div>
+            </div>
+        </header>
+
+        <div class="dashboard grid grid-cols-1 md:grid-cols-2 gap-6 p-6">
+            <div class="panel bg-gray-50 rounded-lg shadow-sm border border-gray-200 p-6">
+                <h2 class="text-xl font-semibold mb-5 text-gray-900 flex items-center space-x-3 pb-4 border-b border-gray-200">
+                    <i class="fas fa-video text-sky-500"></i> Live Video Feed
+                </h2>
+                <div class="video-container h-72 bg-black rounded-lg overflow-hidden flex items-center justify-center">
+                    <img id="videoFeed" src="data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='300' viewBox='0 0 400 300'%3E%3Crect fill='%23e0e0e0' width='400' height='300'/%3E%3Ctext fill='%23999999' font-family='Arial' font-size='18' text-anchor='middle' x='200' y='160'%3ELIVE VIDEO FEED%3C/text%3E%3C/svg%3E" alt="Live Video Feed" class="max-w-full max-h-full object-contain">
+                </div>
+            </div>
+
+            <div class="panel bg-gray-50 rounded-lg shadow-sm border border-gray-200 p-6">
+                <h2 class="text-xl font-semibold mb-5 text-gray-900 flex items-center space-x-3 pb-4 border-b border-gray-200">
+                    <i class="fas fa-microchip text-sky-500"></i> Sensor Data
+                </h2>
+                <div class="data-grid grid grid-cols-2 gap-4">
+                    <div class="data-item bg-white rounded-lg p-4 shadow-sm border border-gray-200">
+                        <div class="text-xs font-medium text-gray-500 mb-1">GPS COORDINATES</div>
+                        <div class="text-lg font-semibold text-gray-900" id="gps-data">Loading...</div>
+                    </div>
+                    <div class="data-item bg-white rounded-lg p-4 shadow-sm border border-gray-200">
+                        <div class="text-xs font-medium text-gray-500 mb-1">PRESSURE</div>
+                        <div class="text-lg font-semibold text-gray-900" id="pressure-data">Loading...</div>
+                    </div>
+                    <div class="data-item bg-white rounded-lg p-4 shadow-sm border border-gray-200">
+                        <div class="text-xs font-medium text-gray-500 mb-1">ALTITUDE</div>
+                        <div class="text-lg font-semibold text-gray-900" id="altitude-data">Loading...</div>
+                    </div>
+                    <div class="data-item bg-white rounded-lg p-4 shadow-sm border border-gray-200">
+                        <div class="text-xs font-medium text-gray-500 mb-1">TEMPERATURE</div>
+                        <div class="text-lg font-semibold text-gray-900" id="temp-data">Loading...</div>
+                    </div>
+                    <div class="data-item bg-white rounded-lg p-4 shadow-sm border border-gray-200">
+                        <div class="text-xs font-medium text-gray-500 mb-1">VELOCITY</div>
+                        <div class="text-lg font-semibold text-gray-900" id="velocity-data">Loading...</div>
+                    </div>
+                    <div class="data-item bg-white rounded-lg p-4 shadow-sm border border-gray-200">
+                        <div class="text-xs font-medium text-gray-500 mb-1">ACCELERATION</div>
+                        <div class="text-lg font-semibold text-gray-900" id="accel-data">Loading...</div>
+                    </div>
+                    <div class="data-item bg-white rounded-lg p-4 shadow-sm border border-gray-200">
+                        <div class="text-xs font-medium text-gray-500 mb-1">GYROSCOPE</div>
+                        <div class="text-lg font-semibold text-gray-900" id="gyro-data">Loading...</div>
+                    </div>
+                    <div class="data-item bg-white rounded-lg p-4 shadow-sm border border-gray-200">
+                        <div class="text-xs font-medium text-gray-500 mb-1">ORIENTATION</div>
+                        <div class="text-lg font-semibold text-gray-900" id="orientation-data">Loading...</div>
+                    </div>
+                    <div class="data-item qr-data col-span-full bg-blue-50 border-l-4 border-blue-500 rounded-lg p-4">
+                        <div class="text-xs font-medium text-gray-500 mb-1">LAST QR READING</div>
+                        <div class="text-base font-medium text-blue-800" id="qr-data">Loading...</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="control-panel col-span-full grid gap-6">
+                <div class="arm-section bg-gray-50 rounded-lg p-6 border border-gray-200">
+                    <h3 class="text-xl font-semibold mb-5 text-gray-900 flex items-center space-x-3">
+                        <i class="fas fa-toggle-on text-sky-500"></i> Drone Control
+                    </h3>
+                    <div class="flex space-x-4 mb-6">
+                        <button id="arm-btn" class="flex-1 px-5 py-3 border border-green-300 bg-green-50 text-green-800 font-semibold rounded-lg shadow-sm hover:bg-green-100 transition-all duration-200 ease-in-out flex items-center justify-center space-x-2 active:translate-y-px">
+                            <i class="fas fa-power-off"></i> Arm Drone
+                        </button>
+                        <button id="disarm-btn" class="flex-1 px-5 py-3 border border-red-300 bg-red-50 text-red-800 font-semibold rounded-lg shadow-sm hover:bg-red-100 transition-all duration-200 ease-in-out flex items-center justify-center space-x-2 active:translate-y-px">
+                            <i class="fas fa-ban"></i> Disarm Drone
+                        </button>
+                    </div>
+
+                    <div class="state-display bg-white rounded-lg p-5 border border-gray-200">
+                        <div class="flex justify-between items-center mb-3">
+                            <span class="font-medium text-gray-500">Current State:</span>
+                            <span class="state-value flex items-center space-x-2" id="current-armed-state">
+                                <span class="w-3 h-3 rounded-full bg-gray-400" id="armed-indicator-dot"></span>
+                                <span class="font-semibold text-gray-700" id="armed-state-text">UNKNOWN</span>
+                            </span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="font-medium text-gray-500">Last State Change:</span>
+                            <span class="text-gray-600 text-sm" id="state-timestamp">Loading...</span>
+                        </div>
+                    </div>
+                </div>
+                <!-- The fetch-section is explicitly removed by the user in this version -->
+            </div>
+        </div>
+
+        <footer class="p-5 bg-gray-100 text-gray-600 text-sm text-center border-t border-gray-200 rounded-b-lg">
+            <p>Drone Telemetry Dashboard &copy; 2023 | Real-time Monitoring System</p>
+        </footer>
     </div>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.min.js"></script>
     <script>
-        const socket = io();
-        //const socket = io('http://localhost:5000');
+        // Base URL for API calls. This will typically be the domain where your Flask app is running.
+        const BASE_URL = window.location.origin;
+
+        // Get references to DOM elements for telemetry data display
+        const videoFeed = document.getElementById('videoFeed');
+        const gpsData = document.getElementById('gps-data');
+        const pressureData = document.getElementById('pressure-data');
+        const altitudeData = document.getElementById('altitude-data');
+        const tempData = document.getElementById('temp-data');
+        const velocityData = document.getElementById('velocity-data');
+        const accelData = document.getElementById('accel-data');
+        const gyroData = document.getElementById('gyro-data');
+        const orientationData = document.getElementById('orientation-data');
+        const qrData = document.getElementById('qr-data');
+
+        // Get references to DOM elements for drone control
+        const armBtn = document.getElementById('arm-btn');
+        const disarmBtn = document.getElementById('disarm-btn');
+        const armedIndicatorDot = document.getElementById('armed-indicator-dot');
+        const armedStateText = document.getElementById('armed-state-text');
+        const stateTimestamp = document.getElementById('state-timestamp');
+        // fetchBtn and stateOutput are intentionally omitted or set to null as their corresponding HTML is removed.
+        const fetchBtn = null; // Explicitly set to null if element is removed
+        const stateOutput = null; // Explicitly set to null if element is removed
+
+        /**
+         * Updates the display elements with the latest sensor telemetry data.
+         * @param {object} data - An object containing the sensor data.
+         */
+        function updateDisplay(data) {
+            // All these elements are part of the 'Sensor Data' panel which is NOT removed.
+            // Check if element exists before updating to prevent errors if you decide to remove more in the future.
+            if (gpsData) gpsData.textContent = `${data.gpsx.toFixed(4)}, ${data.gpsy.toFixed(4)}, ${data.gpsz.toFixed(2)}m`;
+            if (pressureData) pressureData.textContent = `${data.pressure.toFixed(2)} hPa`;
+            if (altitudeData) altitudeData.textContent = `${data.altitude.toFixed(2)} m`;
+            if (tempData) tempData.textContent = `${data.temp.toFixed(1)} °C`;
+            if (velocityData) velocityData.textContent = `${data.Vx.toFixed(2)}, ${data.Vy.toFixed(2)}, ${data.Vz.toFixed(2)} m/s`;
+            if (accelData) accelData.textContent = `${data.Ax.toFixed(2)}, ${data.Ay.toFixed(2)}, ${data.Az.toFixed(2)} m/s²`;
+            if (gyroData) gyroData.textContent = `${data.Gx.toFixed(2)}, ${data.Gy.toFixed(2)}, ${data.Gz.toFixed(2)} rad/s`;
+            if (orientationData) orientationData.textContent = `P:${data.pitch.toFixed(2)}°, Y:${data.yaw.toFixed(2)}°, R:${data.roll.toFixed(2)}°`;
+            if (qrData) qrData.textContent = data.last_qr_reading;
+        }
+
+        /**
+         * Sends an arm or disarm command to the backend API.
+         * After sending the command, it immediately fetches the updated armed status to reflect the change.
+         * @param {string} command - The command to send ('arm' or 'disarm').
+         */
+        async function sendArmDisarmCommand(command) {
+            try {
+                const response = await fetch(`${BASE_URL}/api/${command}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({})
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const result = await response.json();
+                console.log(`${command} command response:`, result.message);
+                fetchArmedStatus(); // Call to update armed status
+            } catch (error) {
+                console.error(`Failed to send ${command} command:`, error);
+                // stateOutput will be null here, so no error will occur if removed
+            }
+        }
+
+        /**
+         * Fetches the current armed status from the backend API and updates the UI display.
+         * This includes updating the armed indicator, text, timestamp.
+         * Note: stateOutput related updates are skipped as its element is removed.
+         */
+        async function fetchArmedStatus() {
+            try {
+                const response = await fetch(`${BASE_URL}/api/latest`);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const data = await response.json();
+
+                const isArmed = data.armed;
+                const timestamp = data.timestamp ? new Date(data.timestamp).toLocaleString() : 'N/A';
+
+                // Update visual indicator (dot and text) only if elements exist
+                if (armedIndicatorDot && armedStateText) {
+                    if (isArmed) {
+                        armedIndicatorDot.classList.remove('bg-gray-400', 'bg-red-500');
+                        armedIndicatorDot.classList.add('bg-green-500');
+                        armedStateText.textContent = 'ARMED';
+                        armedStateText.classList.remove('text-gray-700', 'text-red-800');
+                        armedStateText.classList.add('text-green-800');
+                    } else {
+                        armedIndicatorDot.classList.remove('bg-gray-400', 'bg-green-500');
+                        armedIndicatorDot.classList.add('bg-red-500');
+                        armedStateText.textContent = 'DISARMED';
+                        armedStateText.classList.remove('text-gray-700', 'text-green-800');
+                        armedStateText.classList.add('text-red-800');
+                    }
+                }
+
+                // Update button states only if elements exist
+                if (armBtn && disarmBtn) {
+                    armBtn.disabled = isArmed;
+                    disarmBtn.disabled = !isArmed;
+                    if (isArmed) {
+                        armBtn.classList.add('opacity-50', 'cursor-not-allowed');
+                        disarmBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+                    } else {
+                        armBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+                        disarmBtn.classList.add('opacity-50', 'cursor-not-allowed');
+                    }
+                }
+
+                // Update timestamp only if element exists
+                if (stateTimestamp) {
+                    stateTimestamp.textContent = timestamp;
+                }
+
+                // stateOutput is null, so this will be skipped, preventing error
+                // if (stateOutput) { stateOutput.textContent = JSON.stringify(data, null, 4); }
+
+            } catch (error) {
+                console.error("Failed to fetch armed status:", error);
+                // Set indicators to error state if elements exist
+                if (armedIndicatorDot && armedStateText) {
+                    armedIndicatorDot.classList.remove('bg-green-500', 'bg-red-500');
+                    armedIndicatorDot.classList.add('bg-gray-400');
+                    armedStateText.textContent = 'ERROR';
+                    armedStateText.classList.remove('text-green-800', 'text-red-800');
+                    armedStateText.classList.add('text-red-500');
+                }
+                if (stateTimestamp) {
+                    stateTimestamp.textContent = 'Error fetching state';
+                }
+                // stateOutput is null, so this will be skipped, preventing error
+                // if (stateOutput) { stateOutput.textContent = `Error fetching armed status: ${error.message}`; }
+
+                // Keep buttons enabled or disabled based on last known state, or default to enabled if unknown
+                if (armBtn) armBtn.disabled = false;
+                if (disarmBtn) disarmBtn.disabled = false;
+                if (armBtn) armBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+                if (disarmBtn) disarmBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+            }
+        }
+
+        // Event Listeners for control buttons
+        // Add listeners only if the buttons exist
+        if (armBtn) armBtn.addEventListener('click', () => sendArmDisarmCommand('arm'));
+        if (disarmBtn) disarmBtn.addEventListener('click', () => sendArmDisarmCommand('disarm'));
+        // fetchBtn is null, so this will be skipped, preventing error
+        // if (fetchBtn) fetchBtn.addEventListener('click', fetchArmedStatus);
+
+
+        // Socket.IO connection for video feed and telemetry data.
+        const socket = io(BASE_URL);
+
+        // Listen for video frame updates
         socket.on('video_frame', (data) => {
-            document.getElementById('videoFeed').src = `data:image/jpeg;base64,${data.image}`;
+            if (data && data.image) {
+                videoFeed.src = `data:image/jpeg;base64,${data.image}`;
+            }
+        });
+
+        // Listen for telemetry data updates (Ensure your backend emits 'telemetry_data' for this to work)
+        socket.on('telemetry_data', (data) => {
+            if (data) {
+                updateDisplay(data);
+            }
+        });
+
+        /**
+         * Fetches the latest sensor data from the backend API and updates the display.
+         */
+        async function fetchLatestSensorData() {
+            try {
+                const response = await fetch(`${BASE_URL}/api/latest`);
+                const data = await response.json();
+                if (!data.message) {
+                    updateDisplay(data); // Update sensor data display
+                } else {
+                    console.warn("No sensor data available from API:", data.message);
+                }
+            } catch (error) {
+                console.error('Error fetching latest sensor data:', error);
+            }
+        }
+
+        // Initialize dashboard:
+        document.addEventListener('DOMContentLoaded', () => {
+            fetchLatestSensorData(); // Initial fetch of sensor data
+            fetchArmedStatus(); // Initial fetch of armed status
+
+            // Set up intervals for continuous updates
+            setInterval(fetchLatestSensorData, 500); // Update sensor data every 500ms
+            setInterval(fetchArmedStatus, 5000); // Update armed status every 5 seconds
         });
     </script>
-
- <div class="data-grid">
-     <div class="data-item">
-         <span class="data-label">GPS:</span>
-         <span class="data-value" id="gps-data">Loading...</span>
-     </div>
-     <div class="data-item">
-         <span class="data-label">Pressure:</span>
-         <span class="data-value" id="pressure-data">Loading...</span>
-     </div>
-     <div class="data-item">
-         <span class="data-label">Altitude:</span>
-            <span class="data-value" id="altitude-data">Loading...</span>
-        </div>
-        <div class="data-item">
-            <span class="data-label">Temperature:</span>
-            <span class="data-value" id="temp-data">Loading...</span>
-        </div>
-        <div class="data-item">
-            <span class="data-label">Velocity:</span>
-            <span class="data-value" id="velocity-data">Loading...</span>
-        </div>
-        <div class="data-item">
-            <span class="data-label">Acceleration:</span>
-            <span class="data-value" id="accel-data">Loading...</span>
-        </div>
-        <div class="data-item">
-            <span class="data-label">Gyro:</span>
-            <span class="data-value" id="gyro-data">Loading...</span>
-        </div>
-        <div class="data-item">
-            <span class="data-label">Orientation:</span>
-            <span class="data-value" id="orientation-data">Loading...</span>
-        </div>
-        <div class="data-item" style="grid-column: 1 / -1;">
-            <span class="data-label">Last QR Reading:</span>
-            <span class="data-value" id="qr-data">Scan QR code...</span>
-        </div>
-        <div class="data-item" style="grid-column: 1 / -1; text-align: center;">
-            <small id="timestamp"></small>
-        </div>
-    </div>
-    <script>
-    const socket = io(window.location.origin);
-    </script>
-    <script>
-    function updateDisplay(data) {
-        // Update GPS
-        document.getElementById('gps-data').textContent =
-            `${data.gpsx.toFixed(4)}, ${data.gpsy.toFixed(4)}, ${data.gpsz.toFixed(4)}`;
-
-        // Update Pressure/Altitude/Temp
-        document.getElementById('pressure-data').textContent = `${data.pressure} hPa`;
-        document.getElementById('altitude-data').textContent = `${data.altitude} m`;
-        document.getElementById('temp-data').textContent = `${data.temp} °C`;
-
-        // Update Velocity
-        document.getElementById('velocity-data').textContent =
-            `${data.Vx.toFixed(2)}, ${data.Vy.toFixed(2)}, ${data.Vz.toFixed(2)} m/s`;
-
-        // Update Acceleration
-        document.getElementById('accel-data').textContent =
-            `${data.Ax.toFixed(2)}, ${data.Ay.toFixed(2)}, ${data.Az.toFixed(2)} m/s²`;
-
-        // Update Gyro
-        document.getElementById('gyro-data').textContent =
-            `${data.Gx.toFixed(2)}, ${data.Gy.toFixed(2)}, ${data.Gz.toFixed(2)} rad/s`;
-
-        // Update Orientation
-        document.getElementById('orientation-data').textContent =
-            `P: ${data.pitch.toFixed(2)}°, Y: ${data.yaw.toFixed(2)}°, R: ${data.roll.toFixed(2)}°`;
-
-        // Update QR
-        document.getElementById('qr-data').textContent = data.last_qr_reading;
-
-        // Update Timestamp
-        document.getElementById('timestamp').textContent =
-            `Last update: ${new Date(data.timestamp).toLocaleString()}`;
-    }
-
-    function checkForUpdates() {
-        fetch('/api/latest')
-            .then(response => response.json())
-            .then(data => {
-                if (!data.message) updateDisplay(data);
-            })
-            .catch(error => console.error('Error:', error));
-    }
-
-    // Initial load
-    checkForUpdates();
-    // Update every 500ms
-    setInterval(checkForUpdates, 500);
-    </script>
-
 </body>
 </html>

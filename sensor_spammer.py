@@ -6,6 +6,7 @@ from datetime import datetime
 
 
 def generate_random_sensor_data():
+    """Generates a dictionary of random sensor data."""
     return {
         "pitch": random.uniform(0, 360),
         "yaw": random.uniform(0, 360),
@@ -29,12 +30,36 @@ def generate_random_sensor_data():
 
 
 def generate_qr_data():
+    """Generates a dictionary with a random QR code reading."""
     return {
-        "last_qr_reading": f"QR_{datetime.now().strftime('%H%M%S%f')}"
+        "last_qr_reading": f"QR_{datetime.now().strftime('%Y%m%d%H%M%S%f')}"
     }
 
 
+def get_arm_status(target_url):
+    """
+    Fetches the latest data, including the arming status, from the backend.
+    Returns the 'armed' status as a boolean.
+    """
+    try:
+        response = requests.get(f"{target_url}/api/latest", timeout=2)
+        response.raise_for_status()  # Raise an HTTPError for bad responses (4xx or 5xx)
+        data = response.json()
+        return data.get('armed', False)  # Default to False if 'armed' key is missing
+    except requests.exceptions.RequestException as e:
+        print(f"Error fetching arm status: {e}")
+        return None  # Indicate failure to fetch status
+
+
 def spam_data(target_url, interval=1):
+    """
+    Continuously sends sensor and QR data, and fetches arming status.
+    Args:
+        target_url (str): The base URL of the Flask application (e.g., "http://localhost:5000").
+        interval (float): The time in seconds to wait between data sends.
+    """
+    print(f"Starting sensor spammer to {target_url} (interval: {interval}s)")
+    print("Press Ctrl+C to stop")
     while True:
         try:
             # Send sensor data
@@ -44,7 +69,7 @@ def spam_data(target_url, interval=1):
                 json=sensor_data,
                 timeout=2
             )
-            print(f"Sensor: {sensor_response.status_code}, {sensor_response.text}")
+            print(f"Sensor Data Sent: {sensor_response.status_code} - {sensor_response.text.strip()}")
 
             # Send QR data
             qr_data = generate_qr_data()
@@ -53,24 +78,49 @@ def spam_data(target_url, interval=1):
                 json=qr_data,
                 timeout=2
             )
-            print(f"QR: {qr_response.status_code}, {qr_response.text}")
+            print(f"QR Data Sent: {qr_response.status_code} - {qr_response.text.strip()}")
 
+            # Get and display arm status
+            armed_status = get_arm_status(target_url)
+            if armed_status is not None:
+                print(f"System Status: {'ARMED' if armed_status else 'DISARMED'}")
+            else:
+                print("System Status: Could not retrieve")
+
+        except requests.exceptions.ConnectionError:
+            print(f"Connection Error: Could not connect to {target_url}. Is the Flask app running?")
+        except requests.exceptions.Timeout:
+            print("Timeout Error: Request took too long.")
+        except requests.exceptions.HTTPError as http_err:
+            print(f"HTTP Error: {http_err} - {http_err.response.text}")
         except Exception as e:
-            print(f"Error: {str(e)}")
+            print(f"An unexpected error occurred: {e}")
+
+        print("-" * 30)  # Separator for readability
         time.sleep(interval)
 
+
 if __name__ == "__main__":
+    # Determine the target URL from command line arguments or default
     if len(sys.argv) < 2:
-        print("Using default localhost:5000")
-        target = "http://localhost:5000" #for local
-        #target = "http://34.88.197.179:5000/"  #for cloud
+        print("Usage: python sensor_spammer.py <target_url> [interval_seconds]")
+        print("Example: python sensor_spammer.py http://localhost:5000 0.5")
+        print("Using default: http://localhost:5000")
+        target = "http://localhost:5000"  # Default for local development
+        # target = "http://34.88.197.179:5000"  # Example for cloud deployment
     else:
         target = sys.argv[1]
 
+    # Determine the interval from command line arguments or default
     try:
         interval = float(sys.argv[2]) if len(sys.argv) > 2 else 0.5
-        print(f"Starting sensor spammer to {target} (interval: {interval}s)")
-        print("Press Ctrl+C to stop")
+    except ValueError:
+        print("Invalid interval. Using default 0.5 seconds.")
+        interval = 0.5
+
+    try:
         spam_data(target, interval)
     except KeyboardInterrupt:
-        print("\nStopped by user")
+        print("\nStopped by user (Ctrl+C)")
+    except Exception as final_e:
+        print(f"Script terminated due to error: {final_e}")

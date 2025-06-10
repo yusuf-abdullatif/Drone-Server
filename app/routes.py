@@ -1,6 +1,7 @@
 from flask import Blueprint, request, jsonify, render_template
 from flask_socketio import emit
-from app import db, socketio # Assuming 'app' is your Flask app instance and db/socketio are initialized there
+# Assuming 'app' is your Flask app instance and db/socketio are initialized there
+from app import db, socketio
 from app.models import SensorData
 import cv2
 import base64
@@ -10,20 +11,28 @@ from flask_cors import CORS # Import CORS
 
 main_bp = Blueprint('main', __name__)
 
+# Apply CORS to the blueprint
 CORS(main_bp,
      resources={r"/api/*": { # Apply to all routes starting with /api/
-         "origins": "*", # Allow all origins (you can restrict this to 'http://192.168.137.72' if needed)
-         "methods": ["GET", "POST", "OPTIONS"], # Explicitly allow OPTIONS
-         "allow_headers": ["Content-Type", "Authorization"], # Allow common headers, add others if your client sends them
-         "supports_credentials": True # If you plan to use cookies/auth later
-}})
+         "origins": "*", # Allow all origins (you can restrict this to specific domains)
+         "methods": ["GET", "POST", "OPTIONS"], # Explicitly allow OPTIONS for preflight requests
+         "allow_headers": ["Content-Type", "Authorization"], # Allow common headers
+         "supports_credentials": True # If you plan to use cookies/auth later
+    }
+})
 
 latest_frame = None
 frame_lock = threading.Lock()
-
+# Global variable to store the arming status.
+# In a real application, this would typically be stored in a database or a more persistent store.
+system_armed_status = False
 
 @main_bp.route('/')
 def index():
+    """
+    Renders the main dashboard page.
+    Initializes mock data if no sensor data exists in the database.
+    """
     if not SensorData.query.first():
         mock_data = SensorData(
             pitch=0.0, yaw=0.0, roll=0.0,
@@ -37,12 +46,16 @@ def index():
         db.session.add(mock_data)
         db.session.commit()
 
+    # Fetch all data (though only the latest is typically displayed on the frontend)
+    # The frontend primarily uses the /api/latest endpoint, so this part is less critical for display.
     data = SensorData.query.order_by(SensorData.timestamp.desc()).all()
     return render_template('index.html', data=data)
 
 @main_bp.route('/api/data', methods=['POST'])
-# No specific CORS decorator needed here if applied to blueprint or using the resources config above
 def receive_data():
+    """
+    Receives sensor data from the client and saves it to the database.
+    """
     data = request.get_json()
     new_data = SensorData(
         pitch=data.get('pitch', 0.0),
@@ -69,9 +82,11 @@ def receive_data():
     db.session.commit()
     return jsonify({"message": "Data saved!"}), 201
 
-
 @main_bp.route('/api/qrdata', methods=['POST'])
 def receive_qr_data():
+    """
+    Receives QR code data and updates the latest sensor entry in the database.
+    """
     data = request.get_json()
     latest = SensorData.query.order_by(SensorData.timestamp.desc()).first()
 
@@ -83,11 +98,26 @@ def receive_qr_data():
         return jsonify({"error": "No data to update"}), 404
 
 @main_bp.route('/api/latest')
-# No specific CORS decorator needed here if applied to blueprint or using the resources config above
 def get_latest_data():
+    """
+    Retrieves the latest sensor data and the current system arming status.
+    """
     latest = SensorData.query.order_by(SensorData.timestamp.desc()).first()
     if not latest:
-        return jsonify({"message": "No data available"}), 404
+        # If no sensor data, return a default state including armed status
+        return jsonify({
+            "message": "No data available",
+            "armed": system_armed_status,
+            # Provide default values for other fields if no data
+            "gpsx": 0.0, "gpsy": 0.0, "gpsz": 0.0,
+            "pressure": 0.0, "altitude": 0.0, "temp": 0.0,
+            "Vx": 0.0, "Vy": 0.0, "Vz": 0.0,
+            "Ax": 0.0, "Ay": 0.0, "Az": 0.0,
+            "Gx": 0.0, "Gy": 0.0, "Gz": 0.0,
+            "pitch": 0.0, "yaw": 0.0, "roll": 0.0,
+            "last_qr_reading": "",
+            "timestamp": datetime.now().isoformat()
+        }), 200 # Changed to 200 so frontend doesn't error out on 404
 
     return jsonify({
         "gpsx": latest.gpsx,
@@ -109,24 +139,45 @@ def get_latest_data():
         "yaw": latest.yaw,
         "roll": latest.roll,
         "last_qr_reading": latest.last_qr_reading,
-        "timestamp": latest.timestamp.isoformat()
+        "timestamp": latest.timestamp.isoformat(),
+        "armed": system_armed_status # Include the armed status
     })
 
-@main_bp.route('/api/video', methods=['POST', 'OPTIONS']) # Add 'OPTIONS'
-# No specific CORS decorator needed here if applied to blueprint or using the resources config above
+@main_bp.route('/api/arm', methods=['POST'])
+def arm_system():
+    """
+    API endpoint to arm the system.
+    Sets the global system_armed_status to True.
+    """
+    global system_armed_status
+    system_armed_status = True
+    # You might add logic here to trigger physical arming mechanisms
+    print("System Armed!") # For debugging/logging
+    return jsonify({"message": "System armed successfully!", "armed": True}), 200
+
+@main_bp.route('/api/disarm', methods=['POST'])
+def disarm_system():
+    """
+    API endpoint to disarm the system.
+    Sets the global system_armed_status to False.
+    """
+    global system_armed_status
+    system_armed_status = False
+    # You might add logic here to trigger physical disarming mechanisms
+    print("System Disarmed!") # For debugging/logging
+    return jsonify({"message": "System disarmed successfully!", "armed": False}), 200
+
+
+@main_bp.route('/api/video', methods=['POST', 'OPTIONS'])
 def receive_video():
-    # Browsers will first send an OPTIONS request for POST with certain content types
-    # Flask-CORS usually handles this automatically if configured at the app or blueprint level.
-    # If you see issues with preflight, ensure OPTIONS is handled or Flask-CORS is set up correctly.
+    """
+    Receives video frames as binary data.
+    Stores the latest frame in base64 format for broadcasting via Socket.IO.
+    """
     if request.method == 'OPTIONS':
-        # Flask-CORS handles this if set up on the blueprint or app
-        # For manual handling (less common with Flask-CORS):
-        # response = jsonify({"message": "CORS preflight OK"})
-        # response.headers.add('Access-Control-Allow-Origin', '*')
-        # response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
-        # response.headers.add('Access-Control-Allow-Methods', 'POST,GET,OPTIONS')
-        # return response, 200
-        pass # Flask-CORS will handle it.
+        # Flask-CORS handles preflight requests automatically if configured.
+        # This block is primarily for understanding, not typically needed if CORS is set up correctly.
+        pass
 
     global latest_frame
     frame_data = request.data
@@ -135,16 +186,24 @@ def receive_video():
     return jsonify({"message": "Frame received"}), 200
 
 def broadcast_frames():
+    """
+    Continuously broadcasts the latest video frame to connected Socket.IO clients.
+    Runs in a separate thread.
+    """
     global latest_frame
     while True:
         with frame_lock:
             if latest_frame:
                 socketio.emit('video_frame', {'image': latest_frame})
-        socketio.sleep(0.033)  # ~30 FPS
+        socketio.sleep(0.033)  # Adjust for desired FPS (e.g., 0.033 for ~30 FPS)
 
 @socketio.on('connect')
 def handle_connect():
+    """
+    Handles new Socket.IO client connections.
+    Starts the video frame broadcasting thread if it's not already running.
+    """
     if not hasattr(socketio, 'broadcast_thread') or not socketio.broadcast_thread.is_alive():
         socketio.broadcast_thread = threading.Thread(target=broadcast_frames)
-        socketio.broadcast_thread.daemon = True
+        socketio.broadcast_thread.daemon = True # Allow the thread to exit when the main program exits
         socketio.broadcast_thread.start()
