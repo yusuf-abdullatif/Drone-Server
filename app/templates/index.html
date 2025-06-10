@@ -47,8 +47,8 @@
                 <h2 class="text-xl font-semibold mb-5 text-gray-900 flex items-center space-x-3 pb-4 border-b border-gray-200">
                     <i class="fas fa-video text-sky-500"></i> Live Video Feed
                 </h2>
-                <div class="video-container h-72 bg-black rounded-lg overflow-hidden flex items-center justify-center">
-                    <img id="videoFeed" src="data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='300' viewBox='0 0 400 300'%3E%3Crect fill='%23e0e0e0' width='400' height='300'/%3E%3Ctext fill='%23999999' font-family='Arial' font-size='18' text-anchor='middle' x='200' y='160'%3ELIVE VIDEO FEED%3C/text%3E%3C/svg%3E" alt="Live Video Feed" class="max-w-full max-h-full object-contain">
+                <div class="video-container h-72 bg-gray-50 rounded-lg overflow-hidden flex items-center justify-center">
+                    <img id="videoFeed" src="{{ url_for('main.video_feed') }}" alt="Live Video Feed" class="max-w-full max-h-full object-contain">
                 </div>
             </div>
 
@@ -129,7 +129,7 @@
         </div>
 
         <footer class="p-5 bg-gray-100 text-gray-600 text-sm text-center border-t border-gray-200 rounded-b-lg">
-            <p>Drone Telemetry Dashboard &copy; 2023 | Real-time Monitoring System</p>
+            <p>Drone Telemetry Dashboard &copy; 2025 | Real-time Monitoring System</p>
         </footer>
     </div>
 

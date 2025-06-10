@@ -106,8 +106,8 @@ if __name__ == "__main__":
         print("Usage: python sensor_spammer.py <target_url> [interval_seconds]")
         print("Example: python sensor_spammer.py http://localhost:5000 0.5")
         print("Using default: http://localhost:5000")
-        target = "http://localhost:5000"  # Default for local development
-        # target = "http://34.88.197.179:5000"  # Example for cloud deployment
+        #target = "http://localhost:5000"  # Default for local development
+        target = "http://34.88.197.179:5000"  # Example for cloud deployment
     else:
         target = sys.argv[1]
 
